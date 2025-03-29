@@ -1,0 +1,36 @@
+# Ignore environment variables
+.env
+
+# Node.js dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Logs
+logs/
+*.log
+
+# Database files
+*.sqlite3
+*.db
+
+# Compiled files
+*.out
+*.exe
+*.class
+*.o
+*.pyc
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+
+# Build artifacts
+dist/
+build/
+
+.qodo

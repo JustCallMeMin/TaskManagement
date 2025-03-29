@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="42" viewBox="0 0 64 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Logo Icon -->
+  <g transform="translate(8, 2) scale(0.75)">
+    <!-- Vertical bars creating 3D effect -->
+    <path d="M8 32L16 28V8L8 12V32Z" fill="#2C7BE5"/>
+    <path d="M16 28L24 24V4L16 8V28Z" fill="#2C7BE5"/>
+    <path d="M24 24L32 20V0L24 4V24Z" fill="#2C7BE5"/>
+    <path d="M32 20L40 24V4L32 0V20Z" fill="#2C7BE5"/>
+    <path d="M40 24L48 28V8L40 4V24Z" fill="#2C7BE5"/>
+  </g>
+
+  <!-- TASKFLOW Text -->
+  <text x="32" y="38" font-family="'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8" font-weight="600" letter-spacing="0.5" fill="#2D3748" text-anchor="middle">
+    TASKFLOW
+  </text>
+</svg> 

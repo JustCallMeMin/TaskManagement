@@ -1,0 +1,98 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 80px;
+  right: 0;
+  height: 64px;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #eee;
+  z-index: 1001;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.logo {
+  min-width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-image {
+  width: 32px;
+  height: 32px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 8px 16px;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.search-icon {
+  color: #64748b;
+  margin-right: 8px;
+  width: 20px;
+  height: 20px;
+}
+
+.search-input {
+  flex: 1;
+}
+
+.search-input input {
+  border: none;
+  background: none;
+  width: 100%;
+  padding: 4px;
+  color: #1e293b;
+  font-size: 14px;
+  outline: none;
+}
+
+.search-input input::placeholder {
+  color: #94a3b8;
+}
+
+.header-actions {
+  position: absolute;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.notification-btn {
+  position: relative;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background-color: #ef4444;
+  color: white;
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 10px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+} 
