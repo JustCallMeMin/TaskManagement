@@ -34,17 +34,23 @@ const Login = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const onSubmit = async (data) => {
     setLoading(true);
-
+    setError(null);
+    
     try {
-      const response = await authService.login(formData.email, formData.password);
-      login(response.user);
-      navigate(ROUTES.DASHBOARD);
-    } catch (err) {
-      setError(err.response?.data?.message || ERROR_MESSAGES.NETWORK_ERROR);
+      const response = await authService.login(data);
+      
+      // Normal login success flow
+      await login(response.token, response.user);
+      
+      // Redirect to dashboard or stored path
+      const redirectPath = sessionStorage.getItem('redirectPath') || '/dashboard';
+      sessionStorage.removeItem('redirectPath');
+      navigate(redirectPath);
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(error.message || 'Login failed. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }
@@ -52,6 +58,18 @@ const Login = () => {
 
   const handleOAuthLogin = (provider) => {
     window.location.href = `${API_URL}/auth/${provider}`;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    const data = {
+      email: formData.email,
+      password: formData.password
+    };
+    
+    await onSubmit(data);
   };
 
   return (

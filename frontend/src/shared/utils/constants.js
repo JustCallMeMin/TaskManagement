@@ -22,7 +22,6 @@ const API_ENDPOINTS = {
     VERIFY_EMAIL: '/auth/verify-email',
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
-    VERIFY_2FA: '/auth/verify-2fa',
     GOOGLE: '/auth/google',
     GITHUB: '/auth/github'
   },

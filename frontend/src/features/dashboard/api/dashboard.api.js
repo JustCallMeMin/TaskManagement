@@ -1,5 +1,6 @@
 import { API_URLS, LOCAL_STORAGE_KEYS, ERROR_MESSAGES } from "../../../shared/utils/constants";
-import axios from "axios";
+import api from "../../../services/api.service";
+import { toast } from "react-toastify";
 
 /**
  * Get dashboard statistics
@@ -8,29 +9,18 @@ import axios from "axios";
  */
 export const getDashboardStats = async (period = "month") => {
   try {
-    // Get token from local storage
-    const token = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN);
-    
-    if (!token) {
-      console.error("Missing authentication token");
-      throw new Error(ERROR_MESSAGES.UNAUTHENTICATED);
-    }
-
-    console.log("Using token for dashboard API:", token.substring(0, 15) + "...");
-
     // Call API to get dashboard stats
-    const response = await axios.get(`${API_URLS.DASHBOARD_URL}/stats`, {
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      params: { period },
-      withCredentials: true
+    const data = await api.get(`${API_URLS.DASHBOARD_URL}/stats`, {
+      params: { period }
     });
-
-    // Format data for dashboard components
-    const data = response.data;
+    
     console.log("Raw API response:", data);
+
+    // If backend doesn't return data, return empty dashboard structure
+    if (!data) {
+      console.warn("API returned no data, using default values");
+      return getDefaultDashboardData();
+    }
 
     // Format the data to match the dashboard component structure
     const formattedData = {
@@ -38,32 +28,32 @@ export const getDashboardStats = async (period = "month") => {
         tasks: {
           count: data.totalTasks || 0,
           percentage: { 
-            color: data.taskGrowth > 0 ? "success" : data.taskGrowth < 0 ? "error" : "info",
-            amount: data.taskGrowth > 0 ? `+${data.taskGrowth}%` : `${data.taskGrowth}%`,
+            color: (data.taskGrowth > 0) ? "success" : (data.taskGrowth < 0) ? "error" : "info",
+            amount: (data.taskGrowth > 0) ? `+${data.taskGrowth}%` : `${data.taskGrowth}%`,
             label: "than last week" 
           }
         },
         newProjects: { 
           count: data.newProjects || 0,
           percentage: { 
-            color: data.projectGrowth > 0 ? "success" : data.projectGrowth < 0 ? "error" : "info",
-            amount: data.projectGrowth > 0 ? `+${data.projectGrowth}%` : `${data.projectGrowth}%`,
+            color: (data.projectGrowth > 0) ? "success" : (data.projectGrowth < 0) ? "error" : "info",
+            amount: (data.projectGrowth > 0) ? `+${data.projectGrowth}%` : `${data.projectGrowth}%`,
             label: "than last month" 
           }
         },
         completedTasks: { 
           count: data.completedTasks || 0,
           percentage: { 
-            color: data.completionRate > 0 ? "success" : data.completionRate < 0 ? "error" : "info",
-            amount: data.completionRate > 0 ? `+${data.completionRate}%` : `${data.completionRate}%`,
+            color: (data.completionRate > 0) ? "success" : (data.completionRate < 0) ? "error" : "info",
+            amount: (data.completionRate > 0) ? `+${data.completionRate}%` : `${data.completionRate}%`,
             label: "than yesterday" 
           }
         },
         activeProjects: { 
           count: data.activeProjects || 0,
           percentage: { 
-            color: data.activeProjectsGrowth > 0 ? "success" : data.activeProjectsGrowth < 0 ? "error" : "info",
-            amount: data.activeProjectsGrowth > 0 ? `+${data.activeProjectsGrowth}%` : `${data.activeProjectsGrowth}%`,
+            color: (data.activeProjectsGrowth > 0) ? "success" : (data.activeProjectsGrowth < 0) ? "error" : "info",
+            amount: (data.activeProjectsGrowth > 0) ? `+${data.activeProjectsGrowth}%` : `${data.activeProjectsGrowth}%`,
             label: "than yesterday" 
           }
         },
@@ -118,15 +108,63 @@ export const getDashboardStats = async (period = "month") => {
     return formattedData;
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      // Handle authentication errors
-      console.log("Authentication error status:", error.response?.status);
-      console.log("Error message:", error.response?.data?.message);
-      
-      // Attempt to refresh token if 401 (consider implementing this)
-      // For now, throw the error
-      throw new Error(error.response?.data?.message || ERROR_MESSAGES.UNAUTHENTICATED);
-    }
-    throw error;
+    // Return default dashboard data on error
+    return getDefaultDashboardData();
   }
-}; 
+};
+
+/**
+ * Returns default dashboard data when API fails
+ */
+function getDefaultDashboardData() {
+  return {
+    stats: {
+      tasks: { 
+        count: 0, 
+        percentage: { color: "info", amount: "0%", label: "than last week" } 
+      },
+      newProjects: { 
+        count: 0, 
+        percentage: { color: "info", amount: "0%", label: "than last month" } 
+      },
+      completedTasks: { 
+        count: 0, 
+        percentage: { color: "info", amount: "0%", label: "than yesterday" } 
+      },
+      activeProjects: { 
+        count: 0, 
+        percentage: { color: "info", amount: "0%", label: "than yesterday" } 
+      },
+    },
+    weeklyTasksData: {
+      labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      datasets: { label: "Weekly Tasks", data: [0, 0, 0, 0, 0, 0, 0] },
+    },
+    monthlyProjectsData: {
+      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+      datasets: { label: "Monthly Projects", data: Array(12).fill(0) },
+    },
+    projectsTableData: {
+      columns: [
+        { Header: "project", accessor: "name", width: "45%" },
+        { Header: "status", accessor: "status", width: "10%" },
+        { Header: "completion", accessor: "completion", width: "25%" },
+        { Header: "action", accessor: "action", width: "20%" },
+      ],
+      rows: []
+    },
+    weeklyTasksStats: {
+      title: "Weekly Tasks",
+      value: 0,
+      subtitle: "Task completion this week",
+      date: "updated just now"
+    },
+    monthlyProjectsStats: {
+      title: "Monthly Projects",
+      value: 0,
+      subtitle: "Project completion rate",
+      date: "updated today"
+    },
+    teamProductivity: 0
+  };
+} 

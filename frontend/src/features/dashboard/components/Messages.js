@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography, Avatar } from '@mui/material';
+import { Person as PersonIcon } from '@mui/icons-material';
 
 const Messages = () => {
   const messages = [
@@ -28,6 +29,13 @@ const Messages = () => {
       message: "Awsome design!!",
     }
   ];
+
+  // Handle image error by using the first letter or PersonIcon
+  const handleImageError = (e) => {
+    e.target.onerror = null; // Prevent infinite error loops
+    // Force the Avatar to use its fallback (which is the first letter or icon)
+    e.target.src = '';
+  };
 
   return (
     <Box
@@ -58,7 +66,13 @@ const Messages = () => {
               },
             }}
           >
-            <Avatar src={message.avatar} />
+            <Avatar 
+              src={message.avatar} 
+              onError={handleImageError}
+              alt={message.sender}
+            >
+              {message.sender ? message.sender.charAt(0).toUpperCase() : <PersonIcon />}
+            </Avatar>
             <Box>
               <Typography variant="subtitle2" fontWeight="medium">
                 {message.sender}

@@ -8,63 +8,37 @@ const TaskDTO = require("../dto/task.dto");
 class TaskService {
 	// 🔹 Tạo Task mới
 	static async createTask(userId, taskData) {
-		const { title, description, dueDate, priority, projectId, assignedUserId } =
-			taskData;
+		const { title, description, dueDate, priority, projectId, assignedUserId, isPersonal } = taskData;
 
 		// Kiểm tra người tạo task có tồn tại không
 		const user = await UserRepository.findById(userId);
 		if (!user) throw new Error("Người dùng không tồn tại.");
 
-		let project;
+		// Handle personal tasks (tasks without a project)
+		if (isPersonal || !projectId) {
+			// For personal tasks, create task directly without project
+			const task = await TaskRepository.create({
+				title,
+				description,
+				dueDate,
+				priority,
+				projectId: null, // No project for personal tasks
+				assignedUserId: assignedUserId || userId, // Default to creator
+				status: TASK_STATUS.TODO,
+				isPersonal: true, // Mark explicitly as personal
+				createdBy: userId, // Explicitly set creator
+			});
 
-		// Kiểm tra project tồn tại nếu có projectId
-		if (projectId) {
-			project = await ProjectRepository.findById(projectId);
+			return new TaskDTO(task);
 		}
 
-		// Nếu không có projectId hoặc project không tồn tại, tạo Personal Project
+		// From here, handle project-based tasks
+		let project;
+
+		// Kiểm tra project tồn tại
+		project = await ProjectRepository.findById(projectId);
 		if (!project) {
-			console.log("🔍 Tìm Personal Project cho user:", userId);
-			project = await ProjectRepository.findByOwner(userId, true);
-			console.log("📌 Kết quả tìm Personal Project:", project);
-
-			const startDate = new Date();
-			const taskDueDate = dueDate
-				? new Date(dueDate)
-				: new Date(startDate.getFullYear(), 11, 31);
-
-			if (!project) {
-				try {
-					console.log("🚀 Bắt đầu tạo Personal Project...");
-					// Tạo mới Personal Project
-					const projectData = {
-						name: "Personal Tasks",
-						description: "Your personal task list",
-						ownerId: userId,
-						isPersonal: true,
-						status: PROJECT_STATUS.IN_PROGRESS,
-						startDate: startDate,
-						endDate: taskDueDate,
-					};
-					console.log("📝 Data tạo Personal Project:", projectData);
-
-					project = await ProjectRepository.create(projectData);
-					console.log("✅ Đã tạo Personal Project thành công:", project);
-				} catch (error) {
-					console.error("❌ Lỗi khi tạo Personal Project:", error);
-					throw new Error(`Không thể tạo Personal Project: ${error.message}`);
-				}
-			} else if (dueDate) {
-				console.log("🔄 Cập nhật endDate của Personal Project");
-				// Cập nhật endDate của Personal Project nếu task mới có dueDate xa hơn
-				const currentEndDate = new Date(project.endDate);
-				if (taskDueDate > currentEndDate) {
-					project = await ProjectRepository.update(project._id, {
-						endDate: taskDueDate,
-					});
-					console.log("✅ Đã cập nhật endDate của Personal Project:", project);
-				}
-			}
+			throw new Error("Dự án không tồn tại.");
 		}
 
 		// Kiểm tra dueDate nằm trong khoảng thời gian của project
@@ -95,6 +69,8 @@ class TaskService {
 			projectId: project._id,
 			assignedUserId: assignedUserId || userId,
 			status: TASK_STATUS.TODO,
+			isPersonal: false, // Mark explicitly as NOT personal
+			createdBy: userId, // Explicitly set creator
 		});
 
 		return new TaskDTO(task);
@@ -102,15 +78,41 @@ class TaskService {
 
 	// 🔹 Cập nhật Task
 	static async updateTask(taskId, userId, taskData) {
+		console.log("🔍 Service: Updating task:", taskId);
+		console.log("🔍 Service: Update data:", JSON.stringify(taskData));
+		
 		const task = await TaskRepository.findById(taskId);
-		if (!task) throw new Error("Task không tồn tại.");
+		if (!task) {
+			console.error("❌ Service: Task not found");
+			throw new Error("Task không tồn tại.");
+		}
 
-		if (task.assignedUserId.toString() !== userId) {
+		// Log the full task and user ID for debugging
+		console.log("🔍 Service: Task data:", JSON.stringify(task));
+		console.log("🔍 Service: Current user ID:", userId);
+		console.log("🔍 Service: Task assignedUserId:", task.assignedUserId?.toString());
+
+		// Allow updating if user created the task or is assigned to it
+		// Use optional chaining and String() to safely convert IDs to strings
+		const isCreator = task.createdBy ? String(task.createdBy) === String(userId) : false;
+		const isAssigned = task.assignedUserId ? String(task.assignedUserId) === String(userId) : false;
+		
+		console.log("🔍 Service: User permissions check - isCreator:", isCreator, "isAssigned:", isAssigned);
+		
+		// Let creator or assigned user update the task
+		if (!isCreator && !isAssigned) {
+			console.error("❌ Service: User lacks permission to update task");
 			throw new Error("Bạn không có quyền cập nhật task này.");
 		}
 
-		const updatedTask = await TaskRepository.update(taskId, taskData);
-		return updatedTask;
+		try {
+			const updatedTask = await TaskRepository.update(taskId, taskData);
+			console.log("✅ Service: Task updated successfully");
+			return updatedTask;
+		} catch (error) {
+			console.error("❌ Service: Error in repository update:", error.message);
+			throw error;
+		}
 	}
 
 	// 🔹 Xóa Task
@@ -118,7 +120,12 @@ class TaskService {
 		const task = await TaskRepository.findById(taskId);
 		if (!task) throw new Error("Task không tồn tại.");
 
-		if (task.assignedUserId.toString() !== userId) {
+		// Allow deleting if user created the task or is assigned to it
+		// Use the same string comparison for consistent behavior
+		const isCreator = task.createdBy ? String(task.createdBy) === String(userId) : false;
+		const isAssigned = task.assignedUserId ? String(task.assignedUserId) === String(userId) : false;
+		
+		if (!isCreator && !isAssigned) {
 			throw new Error("Bạn không có quyền xóa task này.");
 		}
 
@@ -128,8 +135,13 @@ class TaskService {
 
 	// 🔹 Lấy danh sách Task của User
 	static async getAllTasks(userId) {
-		const tasks = await TaskRepository.findByUser(userId);
-		return tasks;
+		try {
+			const tasks = await TaskRepository.findByUser(userId);
+			return tasks || []; // Ensure we always return an array
+		} catch (error) {
+			console.error("Error fetching tasks:", error);
+			return []; // Return empty array instead of throwing error
+		}
 	}
 
 	// 🔹 Lấy chi tiết Task
@@ -137,9 +149,11 @@ class TaskService {
 		const task = await TaskRepository.findById(taskId);
 		if (!task) throw new Error("Task không tồn tại.");
 
-		if (task.assignedUserId.toString() !== userId) {
-			throw new Error("Bạn không có quyền xem task này.");
-		}
+		// Allow any authenticated user to view task details
+		// Remove the restriction that only allows assigned users to view tasks
+		// if (task.assignedUserId.toString() !== userId) {
+		//   throw new Error("Bạn không có quyền xem task này.");
+		// }
 
 		return task;
 	}

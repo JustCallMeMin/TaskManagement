@@ -6,6 +6,7 @@ class TaskController {
 			const task = await TaskService.createTask(req.user.id, {
 				...req.body,
 				isPersonal: true,
+				projectId: null,
 			});
 			res.status(201).json(task);
 		} catch (error) {
@@ -15,6 +16,10 @@ class TaskController {
 
 	static async createProjectTask(req, res) {
 		try {
+			if (!req.body.projectId) {
+				return res.status(400).json({ error: "Project ID is required for project tasks" });
+			}
+			
 			const task = await TaskService.createTask(req.user.id, {
 				...req.body,
 				isPersonal: false,
@@ -28,13 +33,18 @@ class TaskController {
 	static async updateTask(req, res) {
 		try {
 			const { taskId } = req.params;
+			console.log("🔍 Attempting to update task:", taskId);
+			console.log("🔍 Request body:", JSON.stringify(req.body));
+			
 			const updatedTask = await TaskService.updateTask(
 				taskId,
 				req.user.id,
 				req.body
 			);
+			console.log("✅ Task updated successfully");
 			res.status(200).json(updatedTask);
 		} catch (error) {
+			console.error("❌ Error updating task:", error.message);
 			res.status(400).json({ error: error.message });
 		}
 	}
@@ -52,9 +62,9 @@ class TaskController {
 	static async getAllTasks(req, res) {
 		try {
 			const tasks = await TaskService.getAllTasks(req.user.id);
-			res.status(200).json(tasks);
+			return res.status(200).json(tasks || []);
 		} catch (error) {
-			res.status(400).json({ error: error.message });
+			return res.status(400).json({ error: error.message });
 		}
 	}
 

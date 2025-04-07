@@ -9,9 +9,25 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const login = async (token, userData) => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, token);
-    setUser(userData);
+  const login = async (tokenOrUserData, userData) => {
+    // Handle both cases:
+    // 1. login(token, userData) - old way
+    // 2. login(userData) - new way from OAuth callback
+    
+    if (userData) {
+      // Case 1: Called with both token and userData
+      console.log('Login with token and userData');
+      const token = typeof tokenOrUserData === 'string' ? tokenOrUserData : JSON.stringify(tokenOrUserData);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, token);
+      setUser(userData);
+    } else {
+      // Case 2: Called with just userData
+      console.log('Login with userData only');
+      setUser(tokenOrUserData);
+      
+      // Note: token should already be saved in localStorage by the caller
+      // No need to save token here, as it's already done in OAuthCallback
+    }
   };
 
   const logout = () => {
@@ -33,19 +49,6 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
-  
-  const verifySecurityCode = async (code) => {
-    setLoading(true);
-    try {
-      const response = await authService.verifySecurityCode(code);
-      return response;
-    } catch (err) {
-      setError(err.message || 'Verification failed');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <AuthContext.Provider 
@@ -56,7 +59,6 @@ export const AuthProvider = ({ children }) => {
         login, 
         logout, 
         register,
-        verifySecurityCode,
         setLoading, 
         setError 
       }}

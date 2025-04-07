@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './features/dashboard/components/Dashboard';
+import TaskPage from './features/tasks/pages/TaskPage';
 import Login from './features/auth/components/Login';
 import Register from './features/auth/components/Register';
 import { AuthProvider } from './contexts/AuthContext';
@@ -73,6 +74,7 @@ const App = () => {
           }
         >
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/tasks/*" element={<TaskPage />} />
           {/* Add other protected routes here */}
         </Route>
 

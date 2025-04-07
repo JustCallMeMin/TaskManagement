@@ -1,169 +1,95 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Paper,
-  Typography,
-  Divider,
-  Button,
+  Box, 
+  Typography, 
+  Card, 
+  CardContent, 
+  CardActions,
+  Button, 
   Chip,
   Grid,
   CircularProgress,
   Alert,
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
+  Divider,
+  IconButton
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
-  ArrowBack as ArrowBackIcon,
-  CheckCircle as CheckCircleIcon,
-  ArrowForward as ArrowForwardIcon,
-  Description as DescriptionIcon,
-  MoreVert as MoreVertIcon,
-  Person as PersonIcon,
-  Business as BusinessIcon,
-  AccessTime as AccessTimeIcon,
-  Event as EventIcon,
+  ArrowBack as BackIcon,
+  CalendarToday as CalendarIcon,
+  Flag as FlagIcon,
+  Person as PersonIcon
 } from '@mui/icons-material';
-import { useNavigate, useParams } from 'react-router-dom';
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
-import TaskService from '../services/task.service';
-import {
-  TASK_STATUS,
-  PRIORITY_COLORS,
-  STATUS_COLORS,
-  PRIORITY_LABELS,
-  STATUS_LABELS,
-} from '../constants/task.constants';
+import { useTaskService } from '../hooks/useTaskService';
+import { TASK_PRIORITY, TASK_STATUS } from '../constants';
 
 const TaskDetail = () => {
-  const { taskId } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
+  const { getTask, deleteTask, loading, error } = useTaskService();
   const [task, setTask] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [statusLoading, setStatusLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
-    fetchTask();
-  }, [taskId]);
+    const fetchTask = async () => {
+      try {
+        const data = await getTask(id);
+        setTask(data);
+      } catch (err) {
+        console.error('Error fetching task details:', err);
+      }
+    };
 
-  const fetchTask = async () => {
-    try {
-      const taskData = await TaskService.getTaskById(taskId);
-      setTask(taskData);
-      setError(null);
-    } catch (error) {
-      setError(error.message || 'Không thể tải thông tin công việc');
-      console.error('Error fetching task:', error);
-    } finally {
-      setLoading(false);
+    if (id) {
+      fetchTask();
+    }
+  }, [id, getTask]);
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      try {
+        await deleteTask(id);
+        navigate('/tasks');
+      } catch (err) {
+        console.error('Error deleting task:', err);
+      }
     }
   };
 
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleEdit = () => {
-    handleMenuClose();
-    navigate(`/tasks/${taskId}/edit`);
-  };
-
-  const handleBack = () => {
-    navigate('/tasks');
-  };
-
-  const handleDeleteClick = () => {
-    handleMenuClose();
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    setDeleteLoading(true);
-    try {
-      await TaskService.deleteTask(taskId);
-      setDeleteDialogOpen(false);
-      navigate('/tasks', { state: { message: 'Công việc đã được xóa thành công' } });
-    } catch (error) {
-      console.error('Lỗi khi xóa task:', error);
-      setError(error.message || 'Không thể xóa công việc');
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-  const handleDeleteCancel = () => {
-    setDeleteDialogOpen(false);
-  };
-
-  const handleStatusChange = async (newStatus) => {
-    handleMenuClose();
-    setStatusLoading(true);
-    try {
-      const updatedTask = await TaskService.updateTaskStatus(taskId, newStatus);
-      setTask(updatedTask);
-    } catch (error) {
-      console.error('Lỗi khi cập nhật trạng thái:', error);
-      setError(error.message || 'Không thể cập nhật trạng thái công việc');
-    } finally {
-      setStatusLoading(false);
-    }
-  };
-
-  // Xác định các trạng thái có thể chuyển đổi từ trạng thái hiện tại
-  const getAvailableStatusTransitions = (currentStatus) => {
-    switch (currentStatus) {
-      case TASK_STATUS.TODO:
-        return [TASK_STATUS.IN_PROGRESS];
-      case TASK_STATUS.IN_PROGRESS:
-        return [TASK_STATUS.REVIEW, TASK_STATUS.TODO];
-      case TASK_STATUS.REVIEW:
-        return [TASK_STATUS.DONE, TASK_STATUS.IN_PROGRESS];
-      case TASK_STATUS.DONE:
-        return [TASK_STATUS.REVIEW];
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case TASK_PRIORITY.LOW:
+        return 'success';
+      case TASK_PRIORITY.MEDIUM:
+        return 'info';
+      case TASK_PRIORITY.HIGH:
+        return 'warning';
+      case TASK_PRIORITY.URGENT:
+        return 'error';
       default:
-        return [];
+        return 'default';
     }
   };
 
-  // Format dueDate
-  const formatDate = (date) => {
-    if (!date) return null;
-    try {
-      return format(new Date(date), 'dd/MM/yyyy', { locale: vi });
-    } catch (error) {
-      console.error('Invalid date format:', error);
-      return null;
+  const getStatusColor = (status) => {
+    switch (status) {
+      case TASK_STATUS.TODO:
+        return 'default';
+      case TASK_STATUS.IN_PROGRESS:
+        return 'info';
+      case TASK_STATUS.REVIEW:
+        return 'warning';
+      case TASK_STATUS.DONE:
+        return 'success';
+      default:
+        return 'default';
     }
-  };
-
-  const isOverdue = () => {
-    if (!task || !task.dueDate) return false;
-    const dueDate = new Date(task.dueDate);
-    const today = new Date();
-    return dueDate < today && task.status !== TASK_STATUS.DONE;
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+      <Box display="flex" justifyContent="center" p={3}>
         <CircularProgress />
       </Box>
     );
@@ -171,232 +97,102 @@ const TaskDetail = () => {
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={handleBack}>
-          Quay lại danh sách
-        </Button>
-      </Box>
+      <Alert severity="error" sx={{ m: 2 }}>
+        {error}
+      </Alert>
     );
   }
 
   if (!task) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">Không tìm thấy thông tin công việc</Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={handleBack} sx={{ mt: 2 }}>
-          Quay lại danh sách
-        </Button>
-      </Box>
+      <Alert severity="info" sx={{ m: 2 }}>
+        Task not found
+      </Alert>
     );
   }
 
-  const availableStatusTransitions = getAvailableStatusTransitions(task.status);
-
   return (
-    <Box sx={{ p: 3 }}>
-      <Paper sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Button startIcon={<ArrowBackIcon />} onClick={handleBack}>
-            Quay lại
-          </Button>
-          <IconButton onClick={handleMenuOpen}>
-            <MoreVertIcon />
-          </IconButton>
-        </Box>
+    <Box>
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+        <IconButton onClick={() => navigate('/tasks')} sx={{ mr: 1 }}>
+          <BackIcon />
+        </IconButton>
+        <Typography variant="h5">Task Details</Typography>
+      </Box>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Chip
-                label={STATUS_LABELS[task.status]}
-                sx={{
-                  backgroundColor: STATUS_COLORS[task.status],
-                  color: 'white',
-                  fontWeight: 500,
-                }}
-              />
-              <Chip
-                label={PRIORITY_LABELS[task.priority]}
-                sx={{
-                  backgroundColor: `${PRIORITY_COLORS[task.priority]}20`,
-                  color: PRIORITY_COLORS[task.priority],
-                  fontWeight: 500,
-                }}
-              />
-              <Chip
-                icon={task.isPersonal ? <PersonIcon fontSize="small" /> : <BusinessIcon fontSize="small" />}
-                label={task.isPersonal ? "Cá nhân" : "Dự án"}
-                variant="outlined"
-              />
-              {statusLoading && <CircularProgress size={24} sx={{ ml: 2 }} />}
-            </Box>
-
-            <Typography variant="h4" component="h1" gutterBottom>
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+            <Typography variant="h5" component="h2" gutterBottom>
               {task.title}
             </Typography>
-          </Grid>
-
-          {task.description && (
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Mô tả
-              </Typography>
-              <Typography variant="body1" paragraph>
-                {task.description}
-              </Typography>
-              <Divider sx={{ my: 2 }} />
-            </Grid>
-          )}
-
-          <Grid item xs={12} sm={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <EventIcon sx={{ mr: 1, color: 'text.secondary' }} />
-              <Typography variant="body1">
-                Ngày tạo: {formatDate(task.createdAt)}
-              </Typography>
-            </Box>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <EventIcon sx={{ mr: 1, color: 'text.secondary' }} />
-              <Typography variant="body1">
-                Cập nhật lần cuối: {formatDate(task.updatedAt)}
-              </Typography>
-            </Box>
-          </Grid>
-
-          {task.dueDate && (
-            <Grid item xs={12} sm={6}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <AccessTimeIcon
-                  sx={{ mr: 1, color: isOverdue() ? 'error.main' : 'text.secondary' }}
-                />
-                <Typography
-                  variant="body1"
-                  sx={{ color: isOverdue() ? 'error.main' : 'inherit' }}
-                >
-                  Hạn chót: {formatDate(task.dueDate)}
-                  {isOverdue() && ' (Quá hạn)'}
+            <Chip 
+              label={task.status} 
+              color={getStatusColor(task.status)} 
+              sx={{ fontWeight: 'bold' }}
+            />
+          </Box>
+          
+          <Divider sx={{ my: 2 }} />
+          
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <FlagIcon sx={{ mr: 1, color: getPriorityColor(task.priority) === 'default' ? 'inherit' : `${getPriorityColor(task.priority)}.main` }} />
+                <Typography variant="body1" component="div">
+                  Priority: <Chip size="small" label={task.priority} color={getPriorityColor(task.priority)} />
                 </Typography>
               </Box>
             </Grid>
-          )}
-
-          {task.assignedUserId && (
-            <Grid item xs={12} sm={6}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                <Typography variant="body1">
-                  Được giao cho: {task.assignedUser ? task.assignedUser.fullName : 'N/A'}
-                </Typography>
-              </Box>
-            </Grid>
-          )}
-
-          {task.projectId && !task.isPersonal && (
-            <Grid item xs={12} sm={6}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <BusinessIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                <Typography variant="body1">
-                  Dự án: {task.project ? task.project.name : 'N/A'}
-                </Typography>
-              </Box>
-            </Grid>
-          )}
-
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Button
-                variant="outlined"
-                color="primary"
-                startIcon={<EditIcon />}
-                onClick={handleEdit}
-              >
-                Chỉnh sửa
-              </Button>
-              {availableStatusTransitions.length > 0 && task.status !== TASK_STATUS.DONE && (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => handleStatusChange(TASK_STATUS.DONE)}
-                  startIcon={<CheckCircleIcon />}
-                  disabled={statusLoading}
-                >
-                  Đánh dấu hoàn thành
-                </Button>
-              )}
-            </Box>
+            
+            {task.dueDate && (
+              <Grid item xs={12} md={6}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <CalendarIcon sx={{ mr: 1 }} />
+                  <Typography variant="body1" component="div">
+                    Due Date: {new Date(task.dueDate).toLocaleDateString()}
+                  </Typography>
+                </Box>
+              </Grid>
+            )}
+            
+            {task.assignedUserId && (
+              <Grid item xs={12} md={6}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <PersonIcon sx={{ mr: 1 }} />
+                  <Typography variant="body1" component="div">
+                    Assigned to: {task.assignedUserId}
+                  </Typography>
+                </Box>
+              </Grid>
+            )}
           </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Menu Tùy chọn */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={handleEdit}>
-          <ListItemIcon>
-            <EditIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Chỉnh sửa</ListItemText>
-        </MenuItem>
-
-        <MenuItem onClick={handleDeleteClick}>
-          <ListItemIcon>
-            <DeleteIcon fontSize="small" color="error" />
-          </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ color: 'error' }}>
-            Xóa
-          </ListItemText>
-        </MenuItem>
-
-        {availableStatusTransitions.length > 0 && (
-          <>
-            <Divider />
-            {availableStatusTransitions.map(status => (
-              <MenuItem key={status} onClick={() => handleStatusChange(status)}>
-                <ListItemIcon>
-                  {status === TASK_STATUS.TODO && <ArrowBackIcon fontSize="small" color="action" />}
-                  {status === TASK_STATUS.IN_PROGRESS && <ArrowForwardIcon fontSize="small" color="primary" />}
-                  {status === TASK_STATUS.REVIEW && <DescriptionIcon fontSize="small" color="warning" />}
-                  {status === TASK_STATUS.DONE && <CheckCircleIcon fontSize="small" color="success" />}
-                </ListItemIcon>
-                <ListItemText>
-                  {`Chuyển sang ${STATUS_LABELS[status]}`}
-                </ListItemText>
-              </MenuItem>
-            ))}
-          </>
-        )}
-      </Menu>
-
-      {/* Dialog xác nhận xóa */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleDeleteCancel}
-      >
-        <DialogTitle>Xác nhận xóa</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Bạn có chắc chắn muốn xóa công việc "{task.title}" không? Hành động này không thể hoàn tác.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel} color="primary" disabled={deleteLoading}>
-            Hủy
+          
+          <Typography variant="h6" gutterBottom>Description</Typography>
+          <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+            {task.description || 'No description provided.'}
+          </Typography>
+        </CardContent>
+        
+        <CardActions sx={{ px: 2, pb: 2 }}>
+          <Button 
+            variant="outlined" 
+            startIcon={<EditIcon />} 
+            onClick={() => navigate(`/tasks/${id}/edit`)}
+            sx={{ mr: 1 }}
+          >
+            Edit
           </Button>
-          <Button onClick={handleDeleteConfirm} color="error" disabled={deleteLoading}>
-            {deleteLoading ? 'Đang xóa...' : 'Xóa'}
+          <Button 
+            variant="outlined" 
+            color="error" 
+            startIcon={<DeleteIcon />} 
+            onClick={handleDelete}
+          >
+            Delete
           </Button>
-        </DialogActions>
-      </Dialog>
+        </CardActions>
+      </Card>
     </Box>
   );
 };

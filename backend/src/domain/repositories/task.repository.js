@@ -13,8 +13,36 @@ class TaskRepository {
         return Task.find({ assignedUserId: userId });
     }
 
+    static async findPersonalTasks(userId) {
+        return Task.find({ 
+            assignedUserId: userId,
+            isPersonal: true
+        });
+    }
+
+    static async findProjectTasks(userId, projectId = null) {
+        const query = { 
+            assignedUserId: userId,
+            isPersonal: false
+        };
+        
+        if (projectId) {
+            query.projectId = projectId;
+        }
+        
+        return Task.find(query);
+    }
+
     static async update(taskId, updatedData) {
-        return Task.findByIdAndUpdate(taskId, updatedData, { new: true });
+        return Task.findByIdAndUpdate(
+            taskId, 
+            updatedData, 
+            { 
+                new: true,
+                runValidators: true,
+                context: 'query'
+            }
+        );
     }
 
     static async delete(taskId) {

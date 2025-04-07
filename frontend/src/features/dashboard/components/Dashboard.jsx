@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Grid, CircularProgress, Box } from "@mui/material";
+import { Grid, CircularProgress, Box, Button } from "@mui/material";
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 // Material Dashboard 2 React components
@@ -132,7 +132,7 @@ function Dashboard() {
       setDashboardData(data);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      setError(error.toString());
+      setError("Failed to load dashboard data. Please try again later or contact support if the problem persists.");
     } finally {
       setLoading(false);
     }
@@ -157,8 +157,16 @@ function Dashboard() {
           {error}
         </MDTypography>
         <MDTypography variant="body2">
-          Failed to load dashboard data. Please try again later.
+          Please try again later or contact support if the problem persists.
         </MDTypography>
+        <Button 
+          variant="contained" 
+          color="primary"
+          onClick={() => fetchDashboardData()}
+          sx={{ mt: 2 }}
+        >
+          Retry
+        </Button>
       </Box>
     );
   }
@@ -171,11 +179,14 @@ function Dashboard() {
           <MDBox 
             height="100%" 
             sx={{ 
-              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
               borderRadius: "12px",
               overflow: "hidden",
-              height: "150px"
+              height: "150px",
+              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+              backgroundColor: "white"
             }}
+            coloredShadow={null}
+            shadow={false}
           >
             <ComplexStatisticsCard
               color="dark"
@@ -190,11 +201,14 @@ function Dashboard() {
           <MDBox 
             height="100%" 
             sx={{ 
-              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
               borderRadius: "12px",
               overflow: "hidden",
-              height: "150px"
+              height: "150px",
+              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+              backgroundColor: "white"
             }}
+            coloredShadow={null}
+            shadow={false}
           >
             <ComplexStatisticsCard
               icon="workspaces"
@@ -208,11 +222,14 @@ function Dashboard() {
           <MDBox 
             height="100%" 
             sx={{ 
-              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
               borderRadius: "12px",
               overflow: "hidden",
-              height: "150px"
+              height: "150px",
+              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+              backgroundColor: "white"
             }}
+            coloredShadow={null}
+            shadow={false}
           >
             <ComplexStatisticsCard
               color="success"
@@ -227,11 +244,14 @@ function Dashboard() {
           <MDBox 
             height="100%" 
             sx={{ 
-              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
               borderRadius: "12px",
               overflow: "hidden",
-              height: "150px"
+              height: "150px",
+              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+              backgroundColor: "white"
             }}
+            coloredShadow={null}
+            shadow={false}
           >
             <ComplexStatisticsCard
               color="primary"
@@ -294,7 +314,7 @@ function Dashboard() {
                     <MDBox display="flex" justifyContent="space-between" alignItems="center">
                       <MDBox color="white" p={1}>
                         <MDTypography variant="h6" fontWeight="medium" color="white">
-                          {/* Task Status Distribution removed */}
+                          Task Status
                         </MDTypography>
                       </MDBox>
                     </MDBox>

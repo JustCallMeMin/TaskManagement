@@ -17,11 +17,34 @@ const authenticate = async (req, res, next) => {
 	try {
 		// Lấy token từ header Authorization
 		const authHeader = req.headers.authorization;
-		if (!authHeader || !authHeader.startsWith('Bearer ')) {
+		console.log("Auth header:", authHeader ? `${authHeader.substring(0, 20)}...` : "none");
+		
+		if (!authHeader) {
 			return res.status(401).json({ message: "Vui lòng đăng nhập" });
 		}
 
-		const token = authHeader.split(" ")[1];
+		// Handle case where Bearer prefix may appear multiple times or not at all
+		// First, trim the header and remove any duplicate spaces
+		const cleanedHeader = authHeader.trim().replace(/\s+/g, ' ');
+		console.log("Cleaned header:", cleanedHeader.substring(0, 20) + "...");
+		
+		// Extract token more robustly
+		let token;
+		if (cleanedHeader.startsWith('Bearer ')) {
+			// Split by 'Bearer ' and take everything after the first occurrence
+			token = cleanedHeader.substring(7).trim();
+			
+			// Handle case where token might have another Bearer prefix
+			if (token.startsWith('Bearer ')) {
+				token = token.substring(7).trim();
+			}
+		} else {
+			// No Bearer prefix, use the whole header as token
+			token = cleanedHeader;
+		}
+		
+		console.log("Extracted token:", token ? `${token.substring(0, 15)}...` : "none");
+		
 		if (!token) {
 			return res.status(401).json({ message: "Vui lòng đăng nhập" });
 		}

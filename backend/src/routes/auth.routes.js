@@ -27,11 +27,6 @@ router.get("/github", authController.githubAuth);
 router.get("/github/callback", authController.githubCallback);
 
 // Protected routes (cần auth)
-router.post(
-	"/verify-security-code",
-	authenticate,
-	authController.verifySecurityCode
-);
 router.post("/logout", authenticate, authController.logout);
 router.post("/revoke-all", authenticate, authController.revokeAllSessions);
 router.get("/me", authenticate, authController.getMe);

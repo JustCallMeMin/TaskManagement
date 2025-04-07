@@ -10,6 +10,9 @@ const passport = require("./config/oauth"); // Import cấu hình Passport
 const session = require("express-session"); // Thêm session middleware
 const { initWebSocket } = require("./config/websocket");
 const { errorHandler } = require("./middlewares/error.middleware");
+const { connectDB } = require("./config/db");
+const routes = require("./routes");
+const RefreshTokenRepository = require("./domain/repositories/refresh_token.repository");
 
 const app = express();
 const server = http.createServer(app);
@@ -75,15 +78,43 @@ app.use(
 // Routes
 const authRoutes = require("./routes/auth.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
+const taskRoutes = require("./routes/task.routes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/tasks", taskRoutes);
 
 // Error handler
 app.use(errorHandler);
 
 // Khởi động WebSocket
 initWebSocket(server);
+
+// Add a cleanup job for expired refresh tokens
+const scheduleRefreshTokenCleanup = () => {
+	console.log("🧹 Scheduling refresh token cleanup job");
+	
+	// Run immediately on startup
+	RefreshTokenRepository.deleteExpired()
+		.then(result => console.log(`🧹 Initial cleanup: Removed ${result?.deletedCount || 0} expired refresh tokens`))
+		.catch(err => console.error("Error in refresh token cleanup:", err));
+	
+	// Then schedule to run every hour
+	setInterval(() => {
+		RefreshTokenRepository.deleteExpired()
+			.then(result => console.log(`🧹 Hourly cleanup: Removed ${result?.deletedCount || 0} expired refresh tokens`))
+			.catch(err => console.error("Error in refresh token cleanup:", err));
+	}, 60 * 60 * 1000); // 1 hour
+};
+
+// Connect Database
+connectDB().then(() => {
+	console.log("Connected to MongoDB");
+	scheduleRefreshTokenCleanup();
+}).catch(err => {
+	console.error("Database connection error:", err);
+	process.exit(1);
+});
 
 // Khởi động server
 server.listen(PORT, () => {

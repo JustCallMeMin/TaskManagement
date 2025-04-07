@@ -8,6 +8,10 @@ class TaskDTO {
         this.status = task.status;
         this.projectId = task.projectId;
         this.assignedUserId = task.assignedUserId;
+        this.isPersonal = task.isPersonal;
+        this.createdBy = task.createdBy;
+        this.createdAt = task.createdAt;
+        this.updatedAt = task.updatedAt;
     }
 }
 

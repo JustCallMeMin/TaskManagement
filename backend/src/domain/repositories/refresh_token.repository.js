@@ -13,6 +13,14 @@ class RefreshTokenRepository {
 		return await RefreshToken.find({ userId, isRevoked: false });
 	}
 
+	static async findByUserIdAndDevice(userId, deviceInfo) {
+		return await RefreshToken.find({ 
+			userId,
+			deviceInfo,
+			isRevoked: false
+		});
+	}
+
 	static async revoke(token) {
 		return await RefreshToken.findOneAndUpdate(
 			{ token },
@@ -26,9 +34,14 @@ class RefreshTokenRepository {
 	}
 
 	static async deleteExpired() {
-		return await RefreshToken.deleteMany({
-			expiresAt: { $lt: new Date() },
+		// Delete tokens that have expired
+		const result = await RefreshToken.deleteMany({
+			$or: [
+				{ expiresAt: { $lt: new Date() } }, // Expired by date
+				{ isRevoked: true }                  // Or manually revoked
+			]
 		});
+		return result;
 	}
 }
 

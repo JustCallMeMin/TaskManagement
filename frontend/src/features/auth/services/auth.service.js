@@ -9,54 +9,39 @@ class AuthService {
 
 	async login(data) {
 		try {
-			const { email, password } = data;
+			console.log('Login data received from form: ', data);
+			const response = await this.api.post(API_ENDPOINTS.AUTH.LOGIN, data);
 			
-			// Add detailed debug logging
-			console.log('Login data received from form:', { 
-				email, 
-				password: password ? '[HIDDEN]' : undefined,
-				dataType: typeof data,
-				hasEmail: !!email,
-				hasPassword: !!password,
-				emailType: typeof email,
-				passwordType: typeof password
-			});
+			// Extract token and user from response
+			const token = response.token || response.data?.token;
+			const user = response.user || response.data?.user;
+			const refreshToken = response.refreshToken || response.data?.refreshToken;
 			
-			const response = await this.api.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
-			
-			// Check for token in the response structure
-			// The backend returns { success: true, message: "...", data: { token: "...", user: {...} } }
-			const token = response.data?.token || response.token;
-			const user = response.data?.user || response.user;
-			const refreshToken = response.data?.refreshToken || response.refreshToken;
-			
-			// Ensure proper token handling
-			if (token) {
-				console.log('Token received, storing in localStorage:', {
-					hasToken: true,
-					tokenLength: token.length,
-					storageKey: LOCAL_STORAGE_KEYS.TOKEN
-				});
-				
-				// Store the token correctly
-				localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, token);
-				
-				// Handle refresh token if present
-				if (refreshToken) {
-					localStorage.setItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-				}
-				
-				// Store user data if present
-				if (user) {
-					localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(user));
-				}
-				
-				// Return a normalized response with token and user at the top level
-				return { token, user, refreshToken };
-			} else {
-				console.warn('Login response missing token:', response);
-				return response; // Return original response for error handling
+			if (!token) {
+				console.log('Login response missing token: ', response);
+				throw new Error('Đăng nhập thất bại: Token không tồn tại trong phản hồi');
 			}
+			
+			// Store raw token without Bearer prefix
+			// If token has Bearer prefix, remove it before storing
+			const rawToken = token.startsWith('Bearer ') ? token.substring(7).trim() : token;
+			
+			// Store token and user info
+			localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, rawToken);
+			if (refreshToken) {
+				localStorage.setItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+			}
+			
+			// Set user data if provided
+			if (user) {
+				localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(user));
+			}
+			
+			return {
+				success: true,
+				user: user,
+				token: token
+			};
 		} catch (error) {
 			console.error('Login API error:', error.response || error);
 			
@@ -128,31 +113,6 @@ class AuthService {
 				localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, response.token);
 			}
 			return response;
-		} catch (error) {
-			throw this.handleError(error);
-		}
-	}
-
-	async generate2FA() {
-		try {
-			return await this.api.get("/generate2FA");
-		} catch (error) {
-			throw this.handleError(error);
-		}
-	}
-
-	async verify2FA(code) {
-		try {
-			const response = await this.api.post(API_ENDPOINTS.AUTH.VERIFY_2FA, { code });
-			return response;
-		} catch (error) {
-			throw error;
-		}
-	}
-
-	async verifySecurityCode(code) {
-		try {
-			return await this.api.post("/verifySecurityCode", { code });
 		} catch (error) {
 			throw this.handleError(error);
 		}

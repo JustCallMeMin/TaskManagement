@@ -38,6 +38,7 @@ const NOTIFICATION_TYPE = Object.freeze({
 
 const ROLE = Object.freeze({
 	ADMIN: "Admin",
+	MANAGER: "Manager",
 	USER: "User",
 });
 

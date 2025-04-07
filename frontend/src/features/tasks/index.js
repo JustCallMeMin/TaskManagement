@@ -1,14 +1,29 @@
 // Components
-export { default as TaskList } from './components/TaskList';
-export { default as TaskForm } from './components/TaskForm';
-export { default as TaskItem } from './components/TaskItem';
-export { default as NewTask } from './components/NewTask';
+import TaskList from './components/TaskList';
+import TaskDetail from './components/TaskDetail';
+import TaskForm from './components/TaskForm';
+import TaskCard from './components/TaskCard';
+import TaskItem from './components/TaskItem';
+import NewTask from './components/NewTask';
 
 // Hooks
-export { useTaskService } from './hooks/useTaskService';
-
-// Types
-export * from './types';
+import { useTaskService } from './hooks/useTaskService';
 
 // Constants
-export { TASK_STATUS, TASK_PRIORITY } from './constants';
+import { TASK_STATUS, TASK_PRIORITY } from './constants';
+
+// Services
+import taskService from './services/taskService';
+
+export {
+  TaskList,
+  TaskDetail,
+  TaskForm,
+  TaskCard,
+  TaskItem,
+  NewTask,
+  TASK_STATUS,
+  TASK_PRIORITY,
+  taskService,
+  useTaskService
+};

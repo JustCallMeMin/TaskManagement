@@ -186,15 +186,33 @@ const validateCreateTask = checkSchema({
 		},
 	},
 	priority: {
-		optional: true,
+		optional: { options: { values: "falsy" } },
 		isIn: {
 			options: [Object.values(TASK_PRIORITY)],
 			errorMessage: "Mức độ ưu tiên không hợp lệ.",
 		},
+		customSanitizer: {
+			options: (value, { req }) => {
+				// Default to MEDIUM if not provided
+				return value || TASK_PRIORITY.MEDIUM;
+			}
+		}
 	},
 	projectId: {
-		optional: true,
-		isMongoId: { errorMessage: "ID dự án không hợp lệ." },
+		optional: true, // Allow null for personal tasks
+		custom: {
+			options: (value, { req }) => {
+				// Skip validation for personal tasks
+				if (req.path.includes('/personal') || req.body.isPersonal) {
+					return true;
+				}
+				// For project tasks, validate projectId
+				if (!value || typeof value !== 'string') {
+					throw new Error("Project ID is required for project tasks");
+				}
+				return true;
+			}
+		}
 	},
 	assignedUserId: {
 		optional: true,

@@ -31,25 +31,26 @@ const taskSchema = new mongoose.Schema(
 		assignedUserId: {
 			type: mongoose.Schema.Types.ObjectId,
 			ref: "User",
-			default: null,
+			required: true,
 		},
 		isPersonal: { type: Boolean, default: false },
+		createdBy: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "User",
+			required: true,
+		},
 	},
 	{ timestamps: true }
 );
 
 // Middleware kiểm tra ngày hạn chót
 taskSchema.pre("save", async function (next) {
-	if (this.dueDate === null) {
+	// Skip date validation for personal tasks or tasks without dueDate
+	if (this.isPersonal || this.dueDate === null) {
 		return next();
 	}
 
-	// Nếu là task cá nhân, không cần kiểm tra thêm
-	if (this.isPersonal) {
-		return next();
-	}
-
-	// Nếu là task của dự án, kiểm tra ngày sau ngày bắt đầu dự án
+	// Only validate project dates for tasks with projectId
 	if (this.projectId) {
 		try {
 			const Project = mongoose.model("Project");

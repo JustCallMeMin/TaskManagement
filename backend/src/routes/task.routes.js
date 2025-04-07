@@ -31,7 +31,6 @@ router.post(
 router.put(
 	"/:taskId",
 	authenticate,
-	authorize(["Edit Task"]),
 	validateTaskId,
 	validateUpdateTask,
 	TaskController.updateTask
@@ -41,7 +40,6 @@ router.put(
 router.delete(
 	"/:taskId",
 	authenticate,
-	authorize(["Delete Task"]),
 	validateTaskId,
 	TaskController.deleteTask
 );

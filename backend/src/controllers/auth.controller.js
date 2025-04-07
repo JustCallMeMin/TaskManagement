@@ -6,6 +6,8 @@ const UserRepository = require("../domain/repositories/user.repository");
 const jwt = require("jsonwebtoken");
 const transporter = require("../config/mail");
 const logger = require("../utils/logger");
+const RefreshTokenRepository = require("../domain/repositories/refresh_token.repository");
+const { validationResult } = require("express-validator");
 
 class AuthController {
 	static async register(req, res) {
@@ -69,34 +71,10 @@ class AuthController {
 
 	static async login(req, res) {
 		try {
-			// Enhanced debug logging
-			console.log("Login request body structure:", {
-				bodyType: typeof req.body,
-				hasEmail: 'email' in req.body,
-				emailType: typeof req.body?.email,
-				emailValue: req.body?.email,
-				hasPassword: 'password' in req.body,
-				passwordType: typeof req.body?.password,
-				passwordLength: req.body?.password ? req.body.password.length : 0,
-				keys: Object.keys(req.body || {})
-			});
-			
-			console.log("Login request body:", {
-				...req.body,
-				password: req.body?.password ? "[HIDDEN]" : undefined,
-			});
-			console.log("Login request headers:", {
-				...req.headers,
-				cookie: "[HIDDEN]",
-			});
-
-			if (!req.body?.email || !req.body?.password) {
-				console.log("Missing credentials - Debug details:", {
-					email: req.body?.email,
-					hasPassword: !!req.body?.password,
-					passwordLength: req.body?.password ? req.body.password.length : 0
-				});
-				return errorResponse(res, "Email và mật khẩu là bắt buộc.", 400);
+			// Validate input
+			const validationResult = validationResult(req);
+			if (!validationResult.isEmpty()) {
+				return errorResponse(res, validationResult.errors[0].msg, 400);
 			}
 
 			const { email, password, twoFactorToken } = req.body;
@@ -110,6 +88,26 @@ class AuthController {
 					deviceInfo, 
 					ipAddress 
 				});
+				
+				// Cleanup old tokens before generating new ones
+				try {
+					const user = await UserRepository.findByEmail(email);
+					if (user) {
+						logger.info("Cleaning up old refresh tokens", { userId: user._id });
+						// Find tokens from the same device and revoke them
+						const oldTokens = await RefreshTokenRepository.findByUserIdAndDevice(user._id, deviceInfo);
+						if (oldTokens && oldTokens.length > 0) {
+							logger.info(`Found ${oldTokens.length} old tokens to revoke`);
+							for (const token of oldTokens) {
+								await RefreshTokenRepository.revoke(token.token);
+							}
+						}
+					}
+				} catch (cleanupError) {
+					logger.warn("Non-critical error during token cleanup", cleanupError);
+					// Continue with login even if cleanup fails
+				}
+				
 				const result = await AuthService.login(
 					email,
 					password,
@@ -143,20 +141,6 @@ class AuthController {
 					email,
 				});
 
-				if (error.message === "Yêu cầu mã xác thực 2FA") {
-					return successResponse(
-						res,
-						{ requiresTwoFactor: true },
-						"Vui lòng nhập mã xác thực 2FA"
-					);
-				}
-				if (error.message === "Yêu cầu xác thực bổ sung") {
-					return successResponse(
-						res,
-						{ requiresSecurityVerification: true },
-						"Vui lòng nhập mã xác thực bảo mật đã được gửi qua email"
-					);
-				}
 				throw error;
 			}
 		} catch (error) {
@@ -166,20 +150,6 @@ class AuthController {
 				type: error.constructor.name,
 			});
 			return errorResponse(res, error.message, 401);
-		}
-	}
-
-	static async verifySecurityCode(req, res) {
-		try {
-			const { code } = req.body;
-			if (!code) {
-				return errorResponse(res, "Mã xác thực bảo mật là bắt buộc", 400);
-			}
-
-			await AuthService.verifySecurityCode(req.user.id, code);
-			return successResponse(res, null, "Xác thực bảo mật thành công");
-		} catch (error) {
-			return errorResponse(res, error.message, 400);
 		}
 	}
 
@@ -337,35 +307,73 @@ class AuthController {
 					});
 				}
 
+				// Cleanup old tokens before generating new ones
+				try {
+					logger.info("Cleaning up old refresh tokens", { userId: user._id });
+					const deviceInfo = req.headers["user-agent"] || "Unknown Device";
+					// Find tokens from the same device and revoke them
+					const oldTokens = await RefreshTokenRepository.findByUserIdAndDevice(user._id, deviceInfo);
+					if (oldTokens && oldTokens.length > 0) {
+						logger.info(`Found ${oldTokens.length} old tokens to revoke`);
+						for (const token of oldTokens) {
+							await RefreshTokenRepository.revoke(token.token);
+						}
+					}
+				} catch (cleanupError) {
+					logger.warn("Non-critical error during token cleanup", cleanupError);
+					// Continue with login even if cleanup fails
+				}
+
 				logger.info("Logging in user with OAuth", { userId: user._id });
 				try {
-					const { token, refreshToken } = await AuthService.login(
+					const loginResult = await AuthService.login(
 						user.email,
 						null,
 						req.headers["user-agent"],
 						req.ip
 					);
-
-					res.cookie("refreshToken", refreshToken, {
+					
+					// Debug the login result structure
+					console.log("Login result type:", typeof loginResult);
+					console.log("Login result structure:", Object.keys(loginResult));
+					console.log("Token value type:", typeof loginResult.token);
+					
+					// Ensure we get a string token regardless of what's returned
+					let tokenString;
+					
+					if (typeof loginResult.token === 'string') {
+						tokenString = loginResult.token;
+					} else if (loginResult.token && typeof loginResult.token === 'object') {
+						// If token is an object, try to extract a string from it
+						if (typeof loginResult.token.token === 'string') {
+							tokenString = loginResult.token.token;
+						} else if (typeof loginResult.token.accessToken === 'string') {
+							tokenString = loginResult.token.accessToken;
+						} else {
+							// Last resort: stringify the entire object
+							tokenString = JSON.stringify(loginResult.token);
+						}
+					} else {
+						// Fallback to stringifying the entire login result
+						tokenString = JSON.stringify(loginResult);
+					}
+					
+					console.log("Final token type:", typeof tokenString);
+					console.log("Final token preview:", tokenString.substring(0, 20) + '...');
+					
+					res.cookie("refreshToken", loginResult.refreshToken, {
 						httpOnly: true,
 						secure: process.env.NODE_ENV === "production",
 						sameSite: "strict",
 						maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 					});
 
-					// Chuyển hướng về trang chủ với token
-					const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/oauth/callback?token=${token}`;
-					logger.info("Redirecting to client", { redirectUrl });
+					// Chuyển hướng về trang chủ với token string
+					const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/oauth/callback?token=${encodeURIComponent(tokenString)}`;
+					logger.info("Redirecting to client", { redirectUrl: redirectUrl.substring(0, 50) + "..." });
 					return res.redirect(redirectUrl);
 				} catch (loginError) {
 					logger.error("Login error after OAuth authentication", loginError);
-					
-					// Nếu lỗi là "Yêu cầu xác thực bổ sung", chuyển hướng đến trang đăng nhập với thông báo
-					if (loginError.message === "Yêu cầu xác thực bổ sung") {
-						const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/login?message=${encodeURIComponent("Phát hiện đăng nhập bất thường. Vui lòng đăng nhập bằng mật khẩu.")}`;
-						logger.info("Redirecting to login page due to security check", { redirectUrl });
-						return res.redirect(redirectUrl);
-					}
 					
 					return errorResponse(res, loginError.message, 401);
 				}
@@ -414,35 +422,73 @@ class AuthController {
 					});
 				}
 
+				// Cleanup old tokens before generating new ones
+				try {
+					logger.info("Cleaning up old refresh tokens", { userId: user._id });
+					const deviceInfo = req.headers["user-agent"] || "Unknown Device";
+					// Find tokens from the same device and revoke them
+					const oldTokens = await RefreshTokenRepository.findByUserIdAndDevice(user._id, deviceInfo);
+					if (oldTokens && oldTokens.length > 0) {
+						logger.info(`Found ${oldTokens.length} old tokens to revoke`);
+						for (const token of oldTokens) {
+							await RefreshTokenRepository.revoke(token.token);
+						}
+					}
+				} catch (cleanupError) {
+					logger.warn("Non-critical error during token cleanup", cleanupError);
+					// Continue with login even if cleanup fails
+				}
+
 				logger.info("Logging in user with OAuth", { userId: user._id });
 				try {
-					const { token, refreshToken } = await AuthService.login(
+					const loginResult = await AuthService.login(
 						user.email,
 						null,
 						req.headers["user-agent"],
 						req.ip
 					);
-
-					res.cookie("refreshToken", refreshToken, {
+					
+					// Debug the login result structure
+					console.log("Login result type:", typeof loginResult);
+					console.log("Login result structure:", Object.keys(loginResult));
+					console.log("Token value type:", typeof loginResult.token);
+					
+					// Ensure we get a string token regardless of what's returned
+					let tokenString;
+					
+					if (typeof loginResult.token === 'string') {
+						tokenString = loginResult.token;
+					} else if (loginResult.token && typeof loginResult.token === 'object') {
+						// If token is an object, try to extract a string from it
+						if (typeof loginResult.token.token === 'string') {
+							tokenString = loginResult.token.token;
+						} else if (typeof loginResult.token.accessToken === 'string') {
+							tokenString = loginResult.token.accessToken;
+						} else {
+							// Last resort: stringify the entire object
+							tokenString = JSON.stringify(loginResult.token);
+						}
+					} else {
+						// Fallback to stringifying the entire login result
+						tokenString = JSON.stringify(loginResult);
+					}
+					
+					console.log("Final token type:", typeof tokenString);
+					console.log("Final token preview:", tokenString.substring(0, 20) + '...');
+					
+					res.cookie("refreshToken", loginResult.refreshToken, {
 						httpOnly: true,
 						secure: process.env.NODE_ENV === "production",
 						sameSite: "strict",
 						maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 					});
 
-					// Chuyển hướng về trang chủ với token
-					const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/oauth/callback?token=${token}`;
-					logger.info("Redirecting to client", { redirectUrl });
+					// Chuyển hướng về trang chủ với token string
+					const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/oauth/callback?token=${encodeURIComponent(tokenString)}`;
+					logger.info("Redirecting to client", { redirectUrl: redirectUrl.substring(0, 50) + "..." });
 					return res.redirect(redirectUrl);
 				} catch (loginError) {
 					logger.error("Login error after OAuth authentication", loginError);
-					
-					// Nếu lỗi là "Yêu cầu xác thực bổ sung", chuyển hướng đến trang đăng nhập với thông báo
-					if (loginError.message === "Yêu cầu xác thực bổ sung") {
-						const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/login?message=${encodeURIComponent("Phát hiện đăng nhập bất thường. Vui lòng đăng nhập bằng mật khẩu.")}`;
-						logger.info("Redirecting to login page due to security check", { redirectUrl });
-						return res.redirect(redirectUrl);
-					}
 					
 					return errorResponse(res, loginError.message, 401);
 				}
@@ -547,7 +593,6 @@ module.exports = {
 	register: AuthController.register,
 	verifyEmail: AuthController.verifyEmail,
 	login: AuthController.login,
-	verifySecurityCode: AuthController.verifySecurityCode,
 	refreshToken: AuthController.refreshToken,
 	logout: AuthController.logout,
 	revokeAllSessions: AuthController.revokeAllSessions,

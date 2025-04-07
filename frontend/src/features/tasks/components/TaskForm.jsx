@@ -6,9 +6,16 @@ import {
   Select,
   MenuItem,
   InputLabel,
-  Alert
+  FormControl,
+  Typography,
+  Grid,
+  Paper,
+  Alert,
+  CircularProgress,
+  IconButton
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowBack as BackIcon } from '@mui/icons-material';
 import { TASK_STATUS, TASK_PRIORITY } from '../constants';
 import { useTaskService } from '../hooks/useTaskService';
 
@@ -41,7 +48,7 @@ const TaskForm = () => {
       }
     };
     fetchTask();
-  }, [id, getTask]);
+  }, [id, getTask, isEditMode]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -66,97 +73,129 @@ const TaskForm = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 600, mx: 'auto' }}>
+    <Box>
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+        <IconButton onClick={() => navigate('/tasks')} sx={{ mr: 1 }}>
+          <BackIcon />
+        </IconButton>
+        <Typography variant="h5">
+          {isEditMode ? 'Edit Task' : 'Create New Task'}
+        </Typography>
+      </Box>
+
+      <Paper sx={{ p: 3 }}>
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mb: 3 }}>
             {error}
           </Alert>
         )}
 
-        <TextField
-          fullWidth
-          label="Title"
-          name="title"
-          value={formData.title}
-          onChange={handleChange}
-          required
-          sx={{ mb: 2 }}
-        />
+        <Box component="form" onSubmit={handleSubmit}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Title"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                required
+                variant="outlined"
+              />
+            </Grid>
 
-        <TextField
-          fullWidth
-          label="Description"
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          multiline
-          rows={4}
-          sx={{ mb: 2 }}
-        />
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Description"
+                name="description"
+                value={formData.description || ''}
+                onChange={handleChange}
+                multiline
+                rows={4}
+                variant="outlined"
+              />
+            </Grid>
 
-        <Box sx={{ mb: 2 }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            fullWidth
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-          >
-            {Object.entries(TASK_STATUS).map(([key, value]) => (
-              <MenuItem key={key} value={value}>
-                {value}
-              </MenuItem>
-            ))}
-          </Select>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel>Status</InputLabel>
+                <Select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  label="Status"
+                >
+                  {Object.entries(TASK_STATUS).map(([key, value]) => (
+                    <MenuItem key={key} value={value}>
+                      {value.replace('_', ' ')}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel>Priority</InputLabel>
+                <Select
+                  name="priority"
+                  value={formData.priority}
+                  onChange={handleChange}
+                  label="Priority"
+                >
+                  {Object.entries(TASK_PRIORITY).map(([key, value]) => (
+                    <MenuItem key={key} value={value}>
+                      {value}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Due Date"
+                name="dueDate"
+                type="date"
+                value={formData.dueDate}
+                onChange={handleChange}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                variant="outlined"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+                <Button
+                  type="button"
+                  onClick={() => navigate('/tasks')}
+                  variant="outlined"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  disabled={loading}
+                >
+                  {loading ? 
+                    <>
+                      <CircularProgress size={24} sx={{ mr: 1 }} /> 
+                      {isEditMode ? 'Updating...' : 'Creating...'}
+                    </> : 
+                    (isEditMode ? 'Update Task' : 'Create Task')
+                  }
+                </Button>
+              </Box>
+            </Grid>
+          </Grid>
         </Box>
-
-        <Box sx={{ mb: 2 }}>
-          <InputLabel>Priority</InputLabel>
-          <Select
-            fullWidth
-            name="priority"
-            value={formData.priority}
-            onChange={handleChange}
-          >
-            {Object.entries(TASK_PRIORITY).map(([key, value]) => (
-              <MenuItem key={key} value={value}>
-                {value}
-              </MenuItem>
-            ))}
-          </Select>
-        </Box>
-
-        <TextField
-          fullWidth
-          label="Due Date"
-          name="dueDate"
-          type="date"
-          value={formData.dueDate}
-          onChange={handleChange}
-          InputLabelProps={{
-            shrink: true,
-          }}
-          sx={{ mb: 2 }}
-        />
-
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-          <Button
-            type="button"
-            onClick={() => navigate('/tasks')}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            disabled={loading}
-          >
-            {loading ? 'Saving...' : (isEditMode ? 'Update Task' : 'Create Task')}
-          </Button>
-        </Box>
-      </Box>
+      </Paper>
     </Box>
   );
 };

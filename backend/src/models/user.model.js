@@ -75,24 +75,6 @@ const userSchema = new mongoose.Schema(
 			of: String,
 			default: {},
 		},
-		// 2FA fields
-		twoFactorEnabled: {
-			type: Boolean,
-			default: false,
-		},
-		twoFactorSecret: {
-			type: String,
-			default: null,
-		},
-		twoFactorBackupCodes: [
-			{
-				code: String,
-				used: {
-					type: Boolean,
-					default: false,
-				},
-			},
-		],
 		// Session management
 		maxSessions: {
 			type: Number,
@@ -116,7 +98,6 @@ userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ phone: 1 });
 userSchema.index({ isVerified: 1 });
 userSchema.index({ isBlocked: 1 });
-userSchema.index({ twoFactorEnabled: 1 });
 
 // Thêm middleware để xóa UserRole khi xóa User
 userSchema.pre("remove", async function (next) {

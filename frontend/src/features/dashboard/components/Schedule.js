@@ -3,6 +3,11 @@ import { Box, Typography, Button, Avatar, AvatarGroup } from '@mui/material';
 import { CalendarToday as CalendarIcon } from '@mui/icons-material';
 
 const Schedule = () => {
+  // Handle image error
+  const handleImageError = (e) => {
+    e.target.src = ''; // Clear the src to show the fallback
+  };
+
   const schedules = [
     {
       id: 1,
@@ -66,6 +71,7 @@ const Schedule = () => {
                 key={index}
                 src={avatar}
                 sx={{ width: 32, height: 32 }}
+                onError={handleImageError}
               />
             ))}
           </AvatarGroup>

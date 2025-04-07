@@ -9,7 +9,6 @@ const RefreshTokenRepository = require("../repositories/refresh_token.repository
 const SecurityService = require("./security.service");
 const transporter = require("../../config/mail");
 const UserDTO = require("../dto/user.dto");
-const TwoFactorService = require("./two_factor.service");
 const { ROLE } = require("../../utils/enums");
 const EmailService = require("../../services/email.service");
 const TokenService = require("../../services/token.service");
@@ -277,8 +276,7 @@ class AuthService {
 		email,
 		password,
 		deviceInfo,
-		ipAddress,
-		twoFactorToken = null
+		ipAddress
 	) {
 		try {
 			console.log("Login attempt:", { 
@@ -366,22 +364,6 @@ class AuthService {
 				throw new Error("Tài khoản chưa được xác thực email.");
 			}
 
-			// Kiểm tra 2FA nếu đã bật
-			if (user.twoFactorEnabled) {
-				if (!twoFactorToken) {
-					throw new Error("Yêu cầu mã xác thực 2FA");
-				}
-
-				const isValid2FA = await TwoFactorService.verifyToken(
-					user.twoFactorSecret,
-					twoFactorToken
-				);
-
-				if (!isValid2FA) {
-					throw new Error("Mã xác thực 2FA không hợp lệ");
-				}
-			}
-
 			// Lấy roles và permissions
 			console.log("Fetching roles and permissions...");
 			const userRoles = await UserRoleRepository.findByUserId(user._id);
@@ -396,6 +378,14 @@ class AuthService {
 			const roleIds = userRoles.map((ur) => ur.roleId);
 			const permissions = await RolePermissionRepository.findByRoleIds(roleIds);
 			console.log("User permissions:", permissions);
+			console.log("Permission details:", JSON.stringify(permissions, null, 2));
+
+			// Also log if the Create Personal Task permission is present
+			const hasCreatePersonalTaskPerm = permissions.some(p => 
+				p.permissionId && 
+				p.permissionId.permissionName === "Create Personal Task"
+			);
+			console.log("Has Create Personal Task permission:", hasCreatePersonalTaskPerm);
 
 			// Tạo tokens
 			console.log("Generating tokens...");
@@ -404,7 +394,7 @@ class AuthService {
 					userId: user._id,
 					email: user.email,
 					roles: roles,
-					permissions: permissions.map((p) => p.name),
+					permissions: permissions.map((p) => p.permissionId.permissionName),
 				},
 				process.env.JWT_SECRET,
 				{ expiresIn: "15m" }
@@ -454,33 +444,6 @@ class AuthService {
 		} catch (error) {
 			console.error("Login error:", error);
 			throw error;
-		}
-	}
-
-	static async verifySecurityCode(userId, code) {
-		try {
-			const user = await UserRepository.findById(userId);
-			if (!user) throw new Error("Người dùng không tồn tại");
-			if (!user.securityVerificationCode)
-				throw new Error("Không có mã xác thực bảo mật");
-			if (user.securityVerificationExpiry < Date.now()) {
-				throw new Error("Mã xác thực đã hết hạn");
-			}
-
-			const hashedCode = crypto.createHash("sha256").update(code).digest("hex");
-			if (hashedCode !== user.securityVerificationCode) {
-				throw new Error("Mã xác thực không chính xác");
-			}
-
-			// Xóa mã xác thực sau khi xác nhận
-			await UserRepository.update(userId, {
-				securityVerificationCode: null,
-				securityVerificationExpiry: null,
-			});
-
-			return true;
-		} catch (error) {
-			throw new Error(`Lỗi xác thực mã bảo mật: ${error.message}`);
 		}
 	}
 
@@ -542,7 +505,7 @@ class AuthService {
 					userId: user._id,
 					email: user.email,
 					roles,
-					permissions: permissions.map((p) => p.name),
+					permissions: permissions.map((p) => p.permissionId.permissionName),
 				},
 				process.env.JWT_SECRET,
 				{ expiresIn: "15m" }
@@ -572,7 +535,7 @@ class AuthService {
 				user: new UserDTO({
 					...user.toObject(),
 					roles,
-					permissions: permissions.map((p) => p.name),
+					permissions: permissions.map((p) => p.permissionId.permissionName),
 				}),
 			};
 		} catch (error) {
@@ -701,13 +664,21 @@ class AuthService {
 				// Không cần password và phone vì đã cập nhật model để không bắt buộc khi có oauthProviders
 			});
 
-			// Gán role mặc định
-			const defaultRole = await RoleRepository.findByName(ROLE.USER);
-			if (defaultRole) {
+			// Đảm bảo vai trò mặc định tồn tại và gán cho user mới
+			try {
+				const defaultRole = await this.ensureDefaultRole(); // Reuse existing method to ensure the role exists
+				console.log(`Assigning default role ${defaultRole.roleName} to OAuth user ${user._id}`);
+				
 				await UserRoleRepository.create({
 					userId: user._id,
 					roleId: defaultRole._id,
 				});
+				
+				console.log(`Successfully assigned role ${defaultRole.roleName} to user ${user._id}`);
+			} catch (roleError) {
+				console.error(`Failed to assign default role to OAuth user ${user._id}:`, roleError);
+				// Continue and return the user even if role assignment fails
+				// The user can still log in but might lack permissions
 			}
 
 			return user;
@@ -744,6 +715,24 @@ class AuthService {
 			// KHÔNG cập nhật/xóa mật khẩu để đảm bảo người dùng vẫn có thể đăng nhập bằng mật khẩu
 			
 			await user.save();
+			
+			// Check if user has a role, if not assign default role
+			try {
+				const userRoles = await UserRoleRepository.findByUserId(user._id);
+				if (!userRoles || userRoles.length === 0) {
+					console.log(`No roles found for user ${user._id}, assigning default role`);
+					const defaultRole = await this.ensureDefaultRole();
+					await UserRoleRepository.create({
+						userId: user._id,
+						roleId: defaultRole._id,
+					});
+					console.log(`Successfully assigned role ${defaultRole.roleName} to existing user ${user._id}`);
+				}
+			} catch (roleError) {
+				console.error(`Failed to check/assign default role to user ${user._id}:`, roleError);
+				// Continue regardless of role assignment issue
+			}
+			
 			return user;
 		} catch (error) {
 			throw new Error(`Lỗi cập nhật thông tin ${provider}: ${error.message}`);
