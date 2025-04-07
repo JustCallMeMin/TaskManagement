@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './features/dashboard/components/Dashboard';
 import Login from './features/auth/components/Login';
+import Register from './features/auth/components/Register';
 import { AuthProvider } from './contexts/AuthContext';
 import OAuthCallback from './features/auth/components/OAuthCallback';
 
@@ -41,6 +42,10 @@ const App = () => {
         {/* Public routes */}
         <Route path="/login" element={
           token ? <Navigate to="/dashboard" replace /> : <Login />
+        } />
+        
+        <Route path="/register" element={
+          token ? <Navigate to="/dashboard" replace /> : <Register />
         } />
         
         {/* OAuth callback route */}

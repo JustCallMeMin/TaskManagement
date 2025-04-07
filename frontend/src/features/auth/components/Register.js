@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -13,7 +13,7 @@ import {
 	CircularProgress,
 	Link,
 } from "@mui/material";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "react-toastify";
 
 const schema = yup.object().shape({
@@ -167,9 +167,11 @@ const Register = () => {
 						</Button>
 
 						<Box sx={{ textAlign: "center" }}>
-							<Link href="/login" variant="body2">
-								Đã có tài khoản? Đăng nhập
-							</Link>
+							<RouterLink to="/login" style={{ textDecoration: 'none' }}>
+								<Typography variant="body2" color="primary">
+									Đã có tài khoản? Đăng nhập
+								</Typography>
+							</RouterLink>
 						</Box>
 					</form>
 				</Paper>

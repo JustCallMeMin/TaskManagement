@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -205,9 +205,11 @@ const Login = () => {
 					</form>
 
 					<Box mt={2} textAlign="center">
-						<Link href="/register" variant="body2">
-							Chưa có tài khoản? Đăng ký ngay
-						</Link>
+						<RouterLink to="/register" style={{ textDecoration: 'none' }}>
+							<Typography variant="body2" color="primary">
+								Chưa có tài khoản? Đăng ký ngay
+							</Typography>
+						</RouterLink>
 					</Box>
 				</Paper>
 			</Box>
