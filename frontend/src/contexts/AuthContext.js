@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext } from 'react';
+import { authService } from '../features/auth/services/auth.service';
 
 const AuthContext = createContext(null);
 
@@ -7,7 +8,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const login = (userData) => {
+  const login = async (token, userData) => {
+    localStorage.setItem('token', token);
     setUser(userData);
   };
 
@@ -15,9 +17,47 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('token');
   };
+  
+  const register = async (userData) => {
+    setLoading(true);
+    try {
+      const response = await authService.register(userData);
+      return response;
+    } catch (err) {
+      setError(err.message || 'Registration failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const verifySecurityCode = async (code) => {
+    setLoading(true);
+    try {
+      const response = await authService.verifySecurityCode(code);
+      return response;
+    } catch (err) {
+      setError(err.message || 'Verification failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, logout, setLoading, setError }}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        loading, 
+        error, 
+        login, 
+        logout, 
+        register,
+        verifySecurityCode,
+        setLoading, 
+        setError 
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

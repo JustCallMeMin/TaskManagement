@@ -205,11 +205,9 @@ const Login = () => {
 					</form>
 
 					<Box mt={2} textAlign="center">
-						<RouterLink to="/register" style={{ textDecoration: 'none' }}>
-							<Typography variant="body2" color="primary">
-								Chưa có tài khoản? Đăng ký ngay
-							</Typography>
-						</RouterLink>
+						<Link component={RouterLink} to="/register" variant="body2">
+							Chưa có tài khoản? Đăng ký ngay
+						</Link>
 					</Box>
 				</Paper>
 			</Box>

@@ -167,11 +167,9 @@ const Register = () => {
 						</Button>
 
 						<Box sx={{ textAlign: "center" }}>
-							<RouterLink to="/login" style={{ textDecoration: 'none' }}>
-								<Typography variant="body2" color="primary">
-									Đã có tài khoản? Đăng nhập
-								</Typography>
-							</RouterLink>
+							<Link component={RouterLink} to="/login" variant="body2">
+								Đã có tài khoản? Đăng nhập
+							</Link>
 						</Box>
 					</form>
 				</Paper>
