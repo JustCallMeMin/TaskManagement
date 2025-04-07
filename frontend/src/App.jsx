@@ -6,6 +6,8 @@ import Login from './features/auth/components/Login';
 import Register from './features/auth/components/Register';
 import { AuthProvider } from './contexts/AuthContext';
 import OAuthCallback from './features/auth/components/OAuthCallback';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -26,6 +28,17 @@ const App = () => {
 
   return (
     <AuthProvider>
+      <ToastContainer 
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
       <Routes>
         {/* Root redirect */}
         <Route

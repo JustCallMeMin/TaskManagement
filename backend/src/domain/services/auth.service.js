@@ -181,7 +181,19 @@ class AuthService {
 			throw new Error("Không thể gửi email kích hoạt. Vui lòng thử lại sau.");
 		}
 
-		return new UserDTO(user);
+		// Get user roles for the DTO
+		const userRoles = await UserRoleRepository.findByUserId(user._id);
+		
+		// Create a user object with roles populated
+		const userWithRoles = {
+			...user.toObject(),
+			roles: userRoles.map(userRole => ({
+				id: userRole.roleId._id,
+				name: userRole.roleId.roleName
+			}))
+		};
+
+		return new UserDTO(userWithRoles);
 	}
 
 	static async verifyEmail(token) {
@@ -269,10 +281,24 @@ class AuthService {
 		twoFactorToken = null
 	) {
 		try {
-			console.log("Login attempt:", { email });
+			console.log("Login attempt:", { 
+				email,
+				passwordProvided: !!password,
+				passwordType: typeof password,
+				passwordLength: password ? password.length : 0
+			});
 
 			// Tìm user theo email
 			const user = await UserRepository.findByEmail(email);
+			console.log("User found:", {
+				found: !!user,
+				id: user?._id,
+				email: user?.email,
+				hasPassword: !!user?.password,
+				passwordFieldType: user?.password ? typeof user.password : 'undefined',
+				passwordLength: user?.password ? user.password.length : 0
+			});
+			
 			if (!user) {
 				throw new Error("Email hoặc mật khẩu không đúng.");
 			}

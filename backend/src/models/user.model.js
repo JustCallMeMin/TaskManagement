@@ -145,9 +145,21 @@ userSchema.pre("save", async function (next) {
 
 // Method so sánh password
 userSchema.methods.comparePassword = async function (candidatePassword) {
+	console.log("Password comparison:", {
+		hasStoredPassword: !!this.password,
+		storedPasswordType: typeof this.password,
+		storedPasswordLength: this.password ? this.password.length : 0,
+		candidatePasswordProvided: !!candidatePassword,
+		candidatePasswordType: typeof candidatePassword,
+		candidatePasswordLength: candidatePassword ? candidatePassword.length : 0
+	});
+	
 	// Nếu người dùng không có mật khẩu (đăng nhập qua OAuth), luôn trả về false
 	if (!this.password) return false;
-	return await bcrypt.compare(candidatePassword, this.password);
+	
+	const result = await bcrypt.compare(candidatePassword, this.password);
+	console.log("Password comparison result:", result);
+	return result;
 };
 
 module.exports = mongoose.model("User", userSchema);

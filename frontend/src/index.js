@@ -5,6 +5,7 @@ import { CssBaseline, ThemeProvider } from '@mui/material';
 import theme from './shared/utils/theme';
 import App from './App';
 import reportWebVitals from './shared/utils/testing/reportWebVitals';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Ensure the DOM is fully loaded
 const container = document.getElementById('root');

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Grid, Icon, CircularProgress, Box } from "@mui/material";
+import { Grid, CircularProgress, Box } from "@mui/material";
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 // Material Dashboard 2 React components
 import MDBox from "../../../components/MDBox";
@@ -10,9 +11,7 @@ import ReportsBarChart from "../../../components/Charts/BarCharts/ReportsBarChar
 import ReportsLineChart from "../../../components/Charts/LineCharts/ReportsLineChart";
 import PieChart from "../../../components/Charts/PieChart";
 import ComplexStatisticsCard from "../../../components/Cards/StatisticsCards/ComplexStatisticsCard";
-import DefaultInfoCard from "../../../components/Cards/InfoCards/DefaultInfoCard";
 import DataTable from "../../../components/Tables/DataTable";
-import StatsCard from "./StatsCard";
 
 // Dashboard API
 import { getDashboardStats } from "../api/dashboard.api";
@@ -165,10 +164,19 @@ function Dashboard() {
   }
 
   return (
-    <MDBox py={3}>
+    <MDBox py={3} px={2}> {/* Added px for consistent horizontal padding */}
+      {/* Top stats cards row - fixed equal width cards with proper grid */}
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6} lg={3}>
-          <MDBox mb={1.5}>
+        <Grid item xs={12} sm={6} lg={3}>
+          <MDBox 
+            height="100%" 
+            sx={{ 
+              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+              borderRadius: "12px",
+              overflow: "hidden",
+              height: "150px"
+            }}
+          >
             <ComplexStatisticsCard
               color="dark"
               icon="task_alt"
@@ -178,8 +186,16 @@ function Dashboard() {
             />
           </MDBox>
         </Grid>
-        <Grid item xs={12} md={6} lg={3}>
-          <MDBox mb={1.5}>
+        <Grid item xs={12} sm={6} lg={3}>
+          <MDBox 
+            height="100%" 
+            sx={{ 
+              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+              borderRadius: "12px",
+              overflow: "hidden",
+              height: "150px"
+            }}
+          >
             <ComplexStatisticsCard
               icon="workspaces"
               title="New Projects"
@@ -188,8 +204,16 @@ function Dashboard() {
             />
           </MDBox>
         </Grid>
-        <Grid item xs={12} md={6} lg={3}>
-          <MDBox mb={1.5}>
+        <Grid item xs={12} sm={6} lg={3}>
+          <MDBox 
+            height="100%" 
+            sx={{ 
+              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+              borderRadius: "12px",
+              overflow: "hidden",
+              height: "150px"
+            }}
+          >
             <ComplexStatisticsCard
               color="success"
               icon="done_all"
@@ -199,8 +223,16 @@ function Dashboard() {
             />
           </MDBox>
         </Grid>
-        <Grid item xs={12} md={6} lg={3}>
-          <MDBox mb={1.5}>
+        <Grid item xs={12} sm={6} lg={3}>
+          <MDBox 
+            height="100%" 
+            sx={{ 
+              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+              borderRadius: "12px",
+              overflow: "hidden",
+              height: "150px"
+            }}
+          >
             <ComplexStatisticsCard
               color="primary"
               icon="trending_up"
@@ -211,21 +243,99 @@ function Dashboard() {
           </MDBox>
         </Grid>
       </Grid>
+
+      {/* Middle charts row - fixed heights and proper grid */}
       <MDBox mt={4.5}>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6} lg={4}>
-            <MDBox mb={3}>
-              <PieChart
-                title="Task Status Distribution"
-                description="Current status of all tasks"
-                date="last updated today"
-                data={createTaskStatusData(dashboardData.stats)}
-                colors={["#66BB6A", "#49a3f1", "#FFA726"]}
-              />
+          <Grid item xs={12} lg={4}>
+            <MDBox 
+              height="100%" 
+              sx={{ 
+                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+                borderRadius: "12px",
+                overflow: "hidden",
+                height: "420px"
+              }}
+            >
+              {createTaskStatusData(dashboardData.stats).length > 0 ? (
+                <PieChart
+                  title="Current Status Of All Tasks"
+                  description=""
+                  date="last updated today"
+                  data={createTaskStatusData(dashboardData.stats)}
+                  colors={["#66BB6A", "#49a3f1", "#FFA726"]}
+                />
+              ) : (
+                <MDBox 
+                  height="100%" 
+                  sx={{ 
+                    display: "flex", 
+                    flexDirection: "column",
+                  }}
+                >
+                  <MDBox
+                    variant="gradient"
+                    bgColor="info"
+                    borderRadius="lg"
+                    coloredShadow="info"
+                    py={2}
+                    px={2}
+                    mt={-5}
+                    height="16rem"
+                    sx={{
+                      backgroundImage: 'linear-gradient(195deg, rgba(73, 163, 241, 0.6), rgba(26, 115, 232, 0.9))',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      width: '100%',
+                      display: "flex",
+                      flexDirection: "column"
+                    }}
+                  >
+                    <MDBox display="flex" justifyContent="space-between" alignItems="center">
+                      <MDBox color="white" p={1}>
+                        <MDTypography variant="h6" fontWeight="medium" color="white">
+                          {/* Task Status Distribution removed */}
+                        </MDTypography>
+                      </MDBox>
+                    </MDBox>
+                    <MDBox 
+                      flexGrow={1} 
+                      display="flex" 
+                      justifyContent="center" 
+                      alignItems="center"
+                    >
+                      <MDTypography color="white" variant="h5" fontWeight="medium">
+                        No Data
+                      </MDTypography>
+                    </MDBox>
+                  </MDBox>
+                  <MDBox pt={3} pb={2} px={3} flexGrow={1} display="flex" flexDirection="column" justifyContent="space-between">
+                    <MDTypography variant="button" textTransform="capitalize" fontWeight="medium">
+                      Current status of all tasks
+                    </MDTypography>
+                    <MDBox display="flex" alignItems="center">
+                      <MDBox display="flex" alignItems="center" lineHeight={1}>
+                        <AccessTimeIcon fontSize="small" color="text" sx={{ mr: 0.5 }} />
+                        <MDTypography variant="caption" color="text" fontWeight="light">
+                          last updated today
+                        </MDTypography>
+                      </MDBox>
+                    </MDBox>
+                  </MDBox>
+                </MDBox>
+              )}
             </MDBox>
           </Grid>
-          <Grid item xs={12} md={6} lg={8}>
-            <MDBox mb={3}>
+          <Grid item xs={12} lg={8}>
+            <MDBox 
+              height="100%" 
+              sx={{ 
+                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+                borderRadius: "12px",
+                overflow: "hidden",
+                height: "420px"
+              }}
+            >
               <ReportsLineChart
                 color="info"
                 title="Weekly Tasks"
@@ -237,12 +347,25 @@ function Dashboard() {
           </Grid>
         </Grid>
       </MDBox>
+
+      {/* Bottom charts/tables row */}
       <MDBox mt={4.5}>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={12} lg={8}>
-            <MDBox>
-              <MDTypography variant="h5">Project Status</MDTypography>
-              <MDBox mt={3}>
+          <Grid item xs={12} lg={8}>
+            <MDBox 
+              height="100%" 
+              sx={{
+                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+                borderRadius: "12px",
+                overflow: "hidden",
+                backgroundColor: "white",
+                height: "420px"
+              }}
+            >
+              <MDBox display="flex" justifyContent="space-between" alignItems="center" p={3} pb={0}>
+                <MDTypography variant="h5">Project Status</MDTypography>
+              </MDBox>
+              <MDBox p={3} pt={1.5}>
                 {dashboardData.projectsTableData.rows.length > 0 ? (
                   <DataTable
                     table={dashboardData.projectsTableData}
@@ -252,17 +375,38 @@ function Dashboard() {
                     noEndBorder
                   />
                 ) : (
-                  <MDBox p={2} textAlign="center">
-                    <MDTypography variant="body2" color="text">
-                      No projects available
+                  <MDBox 
+                    display="flex" 
+                    flexDirection="column"
+                    justifyContent="center" 
+                    alignItems="center"
+                    height="300px"
+                    sx={{
+                      background: "linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(255,255,255,0.02))",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    <MDTypography variant="h5" color="text" fontWeight="medium" mb={1}>
+                      No Projects Available
+                    </MDTypography>
+                    <MDTypography variant="body2" color="text" sx={{ opacity: 0.7 }}>
+                      Create new projects to see them listed here
                     </MDTypography>
                   </MDBox>
                 )}
               </MDBox>
             </MDBox>
           </Grid>
-          <Grid item xs={12} md={12} lg={4}>
-            <MDBox mb={3}>
+          <Grid item xs={12} lg={4}>
+            <MDBox 
+              height="100%" 
+              sx={{ 
+                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+                borderRadius: "12px",
+                overflow: "hidden",
+                height: "420px"
+              }}
+            >
               <ReportsBarChart
                 color="info"
                 title="Monthly Projects"

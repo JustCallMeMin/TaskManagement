@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext } from 'react';
 import { authService } from '../features/auth/services/auth.service';
+import { LOCAL_STORAGE_KEYS } from '../shared/utils/constants';
 
 const AuthContext = createContext(null);
 
@@ -9,13 +10,15 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   const login = async (token, userData) => {
-    localStorage.setItem('token', token);
+    localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, token);
     setUser(userData);
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('token');
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
   };
   
   const register = async (userData) => {
@@ -24,7 +27,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.register(userData);
       return response;
     } catch (err) {
-      setError(err.message || 'Registration failed');
+      setError(err.response?.data?.error || err.response?.data?.message || err.message || 'Registration failed');
       throw err;
     } finally {
       setLoading(false);

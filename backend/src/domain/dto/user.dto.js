@@ -5,7 +5,15 @@ class UserDTO {
 		this.email = user.email;
 		this.phone = user.phone;
 		this.isVerified = user.isVerified;
-		this.roles = user.roles;
+		
+		// Ensure roles is properly formatted
+		if (user.roles) {
+			this.roles = Array.isArray(user.roles) 
+				? user.roles 
+				: [];
+		} else {
+			this.roles = [];
+		}
 	}
 }
 

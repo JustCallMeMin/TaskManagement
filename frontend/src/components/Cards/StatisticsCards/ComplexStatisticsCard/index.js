@@ -4,9 +4,15 @@ import { Card, Icon } from "@mui/material";
 import MDBox from "../../../MDBox";
 import MDTypography from "../../../MDTypography";
 
-function ComplexStatisticsCard({ color, title, count, percentage, icon }) {
+function ComplexStatisticsCard({ 
+  color = "info", 
+  title, 
+  count, 
+  percentage = { color: "success", amount: "", label: "" }, 
+  icon 
+}) {
   return (
-    <Card>
+    <Card sx={{ height: "100%", width: "100%", boxShadow: "none", borderRadius: 0 }}>
       <MDBox display="flex" justifyContent="space-between" pt={1} px={2}>
         <MDBox
           variant="gradient"
@@ -48,16 +54,6 @@ function ComplexStatisticsCard({ color, title, count, percentage, icon }) {
     </Card>
   );
 }
-
-// Setting default values for the props of ComplexStatisticsCard
-ComplexStatisticsCard.defaultProps = {
-  color: "info",
-  percentage: {
-    color: "success",
-    amount: "",
-    label: "",
-  },
-};
 
 // Typechecking props for the ComplexStatisticsCard
 ComplexStatisticsCard.propTypes = {

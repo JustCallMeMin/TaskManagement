@@ -8,7 +8,7 @@ import MDBox from "../components/MDBox";
 import DashboardLayout from "../components/LayoutContainers/DashboardLayout";
 import DashboardNavbar from "../components/Navbars/DashboardNavbar";
 import Footer from "../layouts/MainLayout/Footer";
-import StatsCard from "../features/dashboard/components/StatsCard";
+import ComplexStatisticsCard from "../components/Cards/StatisticsCards/ComplexStatisticsCard";
 import { fetchDashboardData } from "../features/dashboard/api/dashboard.api";
 import ProjectsTable from "../features/dashboard/components/ProjectsTable";
 import ReportsBarChart from "../components/Charts/BarCharts/ReportsBarChart";
@@ -92,7 +92,7 @@ function Dashboard() {
             <MDBox mb={3}>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6} lg={3}>
-                  <StatsCard
+                  <ComplexStatisticsCard
                     title="Tasks"
                     count={dashboardData?.tasks?.total || 0}
                     percentage={{
@@ -104,7 +104,7 @@ function Dashboard() {
                   />
                 </Grid>
                 <Grid item xs={12} md={6} lg={3}>
-                  <StatsCard
+                  <ComplexStatisticsCard
                     title="New Projects"
                     count={dashboardData?.projects?.new || 0}
                     percentage={{
@@ -116,7 +116,7 @@ function Dashboard() {
                   />
                 </Grid>
                 <Grid item xs={12} md={6} lg={3}>
-                  <StatsCard
+                  <ComplexStatisticsCard
                     title="Completed Tasks"
                     count={dashboardData?.tasks?.completed || 0}
                     percentage={{
@@ -128,7 +128,7 @@ function Dashboard() {
                   />
                 </Grid>
                 <Grid item xs={12} md={6} lg={3}>
-                  <StatsCard
+                  <ComplexStatisticsCard
                     title="Active Projects"
                     count={dashboardData?.projects?.active || 0}
                     percentage={{
@@ -147,8 +147,8 @@ function Dashboard() {
                 <Grid item xs={12} md={6} lg={4}>
                   <MDBox mb={3}>
                     <PieChart
-                      title="Task Status Distribution"
-                      description="Current status of all tasks"
+                      title="Current Status Of All Tasks"
+                      description=""
                       date="last updated today"
                       data={createTaskStatusData(dashboardData?.tasks || {})}
                       colors={["#66BB6A", "#49a3f1", "#FFA726"]}

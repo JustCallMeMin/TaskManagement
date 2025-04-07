@@ -13,6 +13,7 @@ import {
 	CircularProgress,
 	Link,
 	Divider,
+	Alert,
 } from "@mui/material";
 import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "react-toastify";
@@ -40,10 +41,12 @@ const Login = () => {
 	const [requiresSecurityVerification, setRequiresSecurityVerification] =
 		useState(false);
 	const [show2FA, setShow2FA] = useState(false);
+	const [serverError, setServerError] = useState("");
 
 	const {
 		register,
 		handleSubmit,
+		setError,
 		formState: { errors },
 	} = useForm({
 		resolver: yupResolver(schema),
@@ -53,6 +56,7 @@ const Login = () => {
 	const onSubmit = async (data) => {
 		try {
 			setLoading(true);
+			setServerError("");
 
 			if (requiresSecurityVerification) {
 				await verifySecurityCode(data.securityCode);
@@ -65,17 +69,55 @@ const Login = () => {
 					setRequiresTwoFactor(true);
 					setShow2FA(true);
 				} else {
-					await login(response.token, response.user);
-					toast.success(SUCCESS_MESSAGES.LOGIN);
-					navigate("/dashboard");
+					// Handle token from the normalized response from auth service
+					// The token might be directly in response or in response.data
+					const token = response.token || response.data?.token;
+					const user = response.user || response.data?.user;
+
+					if (!token) {
+						throw new Error("Đăng nhập thất bại: Token không tồn tại trong phản hồi");
+					}
+					
+					try {
+						await login(token, user);
+						toast.success(SUCCESS_MESSAGES.LOGIN);
+						navigate("/dashboard");
+					} catch (tokenError) {
+						console.error("Token storage error:", tokenError);
+						setServerError("Lỗi xử lý đăng nhập. Vui lòng thử lại.");
+					}
 				}
 			}
 		} catch (error) {
+			console.error("Login error:", error);
+			
 			if (error.message === "Yêu cầu xác thực bổ sung") {
 				setRequiresSecurityVerification(true);
 				toast.info("Vui lòng nhập mã xác thực bảo mật đã được gửi qua email");
+			} else if (error.response?.data?.error) {
+				const errorMsg = error.response.data.error;
+				
+				// Map specific error messages to form fields
+				if (errorMsg.includes("Email hoặc mật khẩu không đúng")) {
+					// General credential error - could be either field
+					setServerError("Email hoặc mật khẩu không đúng");
+				} else if (errorMsg.includes("Tài khoản chưa được xác thực")) {
+					setError("email", { 
+						type: "manual", 
+						message: "Tài khoản chưa được xác thực email" 
+					});
+				} else if (errorMsg.includes("Tài khoản đã bị khóa")) {
+					setServerError("Tài khoản của bạn đã bị khóa");
+				} else {
+					// General server error
+					setServerError(errorMsg);
+				}
+			} else if (error.response?.data?.message) {
+				setServerError(error.response.data.message);
+			} else if (error.message) {
+				setServerError(error.message);
 			} else {
-				toast.error(error.message || ERROR_MESSAGES.SERVER_ERROR);
+				setServerError(ERROR_MESSAGES.SERVER_ERROR);
 			}
 		} finally {
 			setLoading(false);
@@ -114,6 +156,12 @@ const Login = () => {
 					<Typography component="h1" variant="h5" align="center" gutterBottom>
 						Đăng nhập
 					</Typography>
+
+					{serverError && (
+						<Alert severity="error" sx={{ mb: 2 }}>
+							{serverError}
+						</Alert>
+					)}
 
 					<form onSubmit={handleSubmit(onSubmit)}>
 						<TextField

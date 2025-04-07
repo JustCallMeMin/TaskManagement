@@ -7,22 +7,82 @@ class AuthService {
 		this.api = api;
 	}
 
-	async login(email, password) {
+	async login(data) {
 		try {
+			const { email, password } = data;
+			
+			// Add detailed debug logging
+			console.log('Login data received from form:', { 
+				email, 
+				password: password ? '[HIDDEN]' : undefined,
+				dataType: typeof data,
+				hasEmail: !!email,
+				hasPassword: !!password,
+				emailType: typeof email,
+				passwordType: typeof password
+			});
+			
 			const response = await this.api.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
-			if (response.token) {
-				localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, response.token);
-				localStorage.setItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken);
-				localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(response.user));
+			
+			// Check for token in the response structure
+			// The backend returns { success: true, message: "...", data: { token: "...", user: {...} } }
+			const token = response.data?.token || response.token;
+			const user = response.data?.user || response.user;
+			const refreshToken = response.data?.refreshToken || response.refreshToken;
+			
+			// Ensure proper token handling
+			if (token) {
+				console.log('Token received, storing in localStorage:', {
+					hasToken: true,
+					tokenLength: token.length,
+					storageKey: LOCAL_STORAGE_KEYS.TOKEN
+				});
+				
+				// Store the token correctly
+				localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, token);
+				
+				// Handle refresh token if present
+				if (refreshToken) {
+					localStorage.setItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+				}
+				
+				// Store user data if present
+				if (user) {
+					localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(user));
+				}
+				
+				// Return a normalized response with token and user at the top level
+				return { token, user, refreshToken };
+			} else {
+				console.warn('Login response missing token:', response);
+				return response; // Return original response for error handling
 			}
-			return response;
 		} catch (error) {
+			console.error('Login API error:', error.response || error);
+			
+			// Add more detailed error logging
+			if (error.response) {
+				console.log('Login API error details:', {
+					status: error.response.status,
+					statusText: error.response.statusText,
+					data: error.response.data,
+					headers: error.response.headers
+				});
+			}
+			
+			// Preserve the full error object for better handling in components
 			throw error;
 		}
 	}
 
 	async register(userData) {
-		return this.api.post(API_ENDPOINTS.AUTH.REGISTER, userData);
+		try {
+			return await this.api.post(API_ENDPOINTS.AUTH.REGISTER, userData);
+		} catch (error) {
+			console.error('Registration API error:', error.response || error);
+			// Preserve the full error object for better handling in components
+			throw error;
+		}
 	}
 
 	async logout() {

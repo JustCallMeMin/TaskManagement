@@ -13,6 +13,7 @@ class AuthController {
 			console.log("Register request body:", req.body);
 			console.log("Register request headers:", req.headers);
 			const user = await AuthService.register(req.body);
+			console.log("Registered user:", JSON.stringify(user, null, 2));
 			return successResponse(
 				res,
 				{ user },
@@ -68,6 +69,18 @@ class AuthController {
 
 	static async login(req, res) {
 		try {
+			// Enhanced debug logging
+			console.log("Login request body structure:", {
+				bodyType: typeof req.body,
+				hasEmail: 'email' in req.body,
+				emailType: typeof req.body?.email,
+				emailValue: req.body?.email,
+				hasPassword: 'password' in req.body,
+				passwordType: typeof req.body?.password,
+				passwordLength: req.body?.password ? req.body.password.length : 0,
+				keys: Object.keys(req.body || {})
+			});
+			
 			console.log("Login request body:", {
 				...req.body,
 				password: req.body?.password ? "[HIDDEN]" : undefined,
@@ -78,7 +91,11 @@ class AuthController {
 			});
 
 			if (!req.body?.email || !req.body?.password) {
-				console.log("Missing credentials");
+				console.log("Missing credentials - Debug details:", {
+					email: req.body?.email,
+					hasPassword: !!req.body?.password,
+					passwordLength: req.body?.password ? req.body.password.length : 0
+				});
 				return errorResponse(res, "Email và mật khẩu là bắt buộc.", 400);
 			}
 
@@ -87,7 +104,12 @@ class AuthController {
 			const ipAddress = req.ip || req.connection.remoteAddress || "Unknown IP";
 
 			try {
-				console.log("Attempting login with:", { email, deviceInfo, ipAddress });
+				console.log("Attempting login with:", { 
+					email,
+					passwordLength: password ? password.length : 0, 
+					deviceInfo, 
+					ipAddress 
+				});
 				const result = await AuthService.login(
 					email,
 					password,

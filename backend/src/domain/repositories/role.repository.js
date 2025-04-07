@@ -9,6 +9,10 @@ class RoleRepository {
 		return await Role.findOne({ _id: roleId });
 	}
 
+	static async findByIds(roleIds) {
+		return await Role.find({ _id: { $in: roleIds } });
+	}
+
 	static async create(roleData) {
 		const role = new Role(roleData);
 		return await role.save();
