@@ -12,6 +12,14 @@ router.get(
 	UserController.getAllUsers
 );
 
+// Tìm kiếm người dùng theo tên hoặc email (yêu cầu xác thực, nhưng không yêu cầu quyền Manage Users)
+// Dùng cho chức năng mời thành viên vào dự án
+router.get(
+	"/search",
+	authenticate,
+	UserController.searchUsers
+);
+
 // Gán vai trò cho User (chỉ Admin mới có quyền)
 router.post(
 	"/assign-role",

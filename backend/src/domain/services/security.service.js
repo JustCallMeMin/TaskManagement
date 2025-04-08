@@ -153,7 +153,9 @@ class SecurityService {
 				timestamp: new Date(),
 			});
 
+			// TEMPORARILY DISABLED - Repository not defined
 			// Lưu lịch sử cảnh báo
+			/*
 			await SecurityAlertRepository.create({
 				userId,
 				type: "SUSPICIOUS_LOGIN",
@@ -164,6 +166,7 @@ class SecurityService {
 				},
 				timestamp: new Date(),
 			});
+			*/
 
 			// Nếu có nhiều dấu hiệu bất thường, tạm thời khóa tài khoản
 			if (patterns.length >= 3) {
@@ -179,14 +182,18 @@ class SecurityService {
 
 	static async getSecurityHistory(userId) {
 		try {
+			// TEMPORARILY MODIFIED - SecurityAlertRepository not defined
+			const loginAttempts = await LoginAttemptRepository.findByUserId(userId);
+			/*
 			const [loginAttempts, securityAlerts] = await Promise.all([
 				LoginAttemptRepository.findByUserId(userId),
 				SecurityAlertRepository.findByUserId(userId),
 			]);
+			*/
 
 			return {
 				loginAttempts,
-				securityAlerts,
+				securityAlerts: [] // Return empty array for now
 			};
 		} catch (error) {
 			throw new Error(`Lỗi lấy lịch sử bảo mật: ${error.message}`);

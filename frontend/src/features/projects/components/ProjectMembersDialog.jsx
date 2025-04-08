@@ -32,10 +32,12 @@ import { userService } from '../../users/services/user.service';
 
 const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
   const [members, setMembers] = useState([]);
-  const [availableUsers, setAvailableUsers] = useState([]);
+  const [searchResults, setSearchResults] = useState([]); 
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -43,13 +45,28 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
       // Check if project has a valid ID before fetching
       if (project._id || project.projectId) {
         fetchMembers();
-        fetchAvailableUsers();
+        // Không tải tất cả người dùng nữa
+        setSearchResults([]);
+        setSearchTerm('');
       } else {
         console.warn('Project object has no valid ID', project);
         setError('Unable to manage members: Project information is incomplete.');
       }
     }
   }, [open, project]);
+
+  // Thêm debounce search
+  useEffect(() => {
+    const delaySearch = setTimeout(() => {
+      if (searchTerm.trim().length >= 2) {
+        searchUsers(searchTerm);
+      } else if (searchTerm.trim().length === 0) {
+        setSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(delaySearch);
+  }, [searchTerm]);
 
   const fetchMembers = async () => {
     if (!project) {
@@ -79,24 +96,28 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
     }
   };
 
-  const fetchAvailableUsers = async () => {
+  const searchUsers = async (query) => {
+    if (!query || query.trim().length < 2) return;
+    
+    setSearching(true);
     try {
       setError(''); // Clear any previous errors
-      const data = await userService.getAllUsers();
-      if (Array.isArray(data)) {
-        setAvailableUsers(data);
-        if (data.length === 0) {
-          setError('No users available to add to this project. You may not have permission to view all users.');
-        }
-      } else {
-        console.warn('User data is not an array:', data);
-        setAvailableUsers([]);
-        setError('Unable to load available users. You may not have sufficient permissions.');
+      const data = await userService.searchUsers(query.trim());
+      
+      // Lọc bỏ những người dùng đã là thành viên
+      const memberIds = members.map(m => m._id || m.userId);
+      const filteredUsers = data.filter(user => !memberIds.includes(user._id));
+      
+      setSearchResults(filteredUsers);
+      if (filteredUsers.length === 0 && data.length > 0) {
+        setError('All matching users are already members of this project.');
       }
     } catch (err) {
-      console.error('Error fetching users:', err);
-      setError('Unable to load available users. You may not have sufficient permissions.');
-      setAvailableUsers([]);
+      console.error('Error searching users:', err);
+      setError('Failed to search for users. Please try again.');
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -149,11 +170,6 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
     }
   };
 
-  // Filter out already added members from available users
-  const filteredUsers = availableUsers.filter(
-    user => !members.some(member => member._id === user._id)
-  );
-
   return (
     <Dialog 
       open={open} 
@@ -195,7 +211,7 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
           <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
             <Autocomplete
               multiple
-              options={filteredUsers}
+              options={searchResults}
               getOptionLabel={(option) => option.fullName || option.email}
               value={selectedUsers}
               onChange={(_, newValue) => setSelectedUsers(newValue)}
@@ -203,9 +219,19 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
                 <TextField
                   {...params}
                   variant="outlined"
-                  label="Select Users"
+                  label="Search Users"
                   placeholder="Search users..."
                   fullWidth
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <React.Fragment>
+                        {searching ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </React.Fragment>
+                    ),
+                  }}
                 />
               )}
               renderTags={(value, getTagProps) =>

@@ -5,18 +5,18 @@ const RolePermission = require('../../models/role_permission.model');
 
 // Danh sách permissions
 const permissions = [
-  // ✅ QUẢN LÝ NGƯỜI DÙNG (AUTHENTICATION)
+  // QUẢN LÝ NGƯỜI DÙNG (AUTHENTICATION)
   { permissionName: "Manage Users" }, // Quản lý người dùng (Admin)
   { permissionName: "Reset Passwords" }, // Reset mật khẩu người dùng
   { permissionName: "Update Profile" }, // Cập nhật thông tin cá nhân
 
-  // ✅ QUẢN LÝ DỰ ÁN (PROJECT MANAGEMENT)
+  // QUẢN LÝ DỰ ÁN (PROJECT MANAGEMENT)
   { permissionName: "Create Project" }, // Tạo dự án mới (Manager/Admin)
   { permissionName: "Edit Project" }, // Chỉnh sửa thông tin dự án
   { permissionName: "Delete Project" }, // Xóa dự án (Admin)
   { permissionName: "Manage Project Members" }, // Quản lý thành viên dự án
 
-  // ✅ QUẢN LÝ CÔNG VIỆC (TASK MANAGEMENT)
+  // QUẢN LÝ CÔNG VIỆC (TASK MANAGEMENT)
   { permissionName: "Create Personal Task" }, // Tạo task cá nhân (User)
   { permissionName: "Create Project Task" }, // Tạo task trong dự án (Manager/Admin)
   { permissionName: "Assign Task" }, // Giao task cho thành viên
@@ -24,14 +24,14 @@ const permissions = [
   { permissionName: "Delete Task" }, // Xóa task (Admin/Manager)
   { permissionName: "Change Task Status" }, // Cập nhật trạng thái task
 
-  // ✅ QUẢN LÝ BÁO CÁO & THỐNG KÊ
+  // QUẢN LÝ BÁO CÁO & THỐNG KÊ
   { permissionName: "View Reports" }, // Xem báo cáo công việc (Manager/Admin)
   { permissionName: "Generate Reports" }, // Tạo báo cáo (Admin)
 
-  // ✅ QUẢN LÝ HỆ THỐNG
+  // QUẢN LÝ HỆ THỐNG
   { permissionName: "Manage System Settings" }, // Cấu hình hệ thống (Admin)
 
-  // ✅ QUẢN LÝ 2FA
+  // QUẢN LÝ 2FA
   { permissionName: "Manage 2FA" },
 ];
 
@@ -60,6 +60,7 @@ const rolePermissionsMap = {
     "Update Profile",
     "Create Project",
     "Edit Project",
+    "Delete Project",
     "Manage Project Members",
     "Create Personal Task",
     "Create Project Task",
@@ -76,7 +77,7 @@ const rolePermissionsMap = {
 const assignPermissionsToRole = async (roleName, permissionNames) => {
   const role = await Role.findOne({ roleName });
   if (!role) {
-    console.error(`❌ Không tìm thấy role: ${roleName}`);
+    console.error(` Không tìm thấy role: ${roleName}`);
     return;
   }
 
@@ -94,7 +95,7 @@ const assignPermissionsToRole = async (roleName, permissionNames) => {
   );
 
   if (newPermissions.length === 0) {
-    console.log(`✅ Tất cả quyền đã được gán cho role ${roleName}`);
+    console.log(` Tất cả quyền đã được gán cho role ${roleName}`);
     return;
   }
 
@@ -104,7 +105,7 @@ const assignPermissionsToRole = async (roleName, permissionNames) => {
   }));
 
   await RolePermission.insertMany(rolePermissions);
-  console.log(`✅ Đã gán ${newPermissions.length} quyền mới cho role ${roleName}`);
+  console.log(` Đã gán ${newPermissions.length} quyền mới cho role ${roleName}`);
 };
 
 /**
@@ -118,7 +119,7 @@ const seedPermissions = async () => {
     if (existingPermissions.length === 0) {
       // Tạo permissions
       await Permission.insertMany(permissions);
-      console.log("✅ Đã tạo permissions thành công!");
+      console.log(" Đã tạo permissions thành công!");
     } else {
       // Thêm permissions mới nếu có
       const existingPermissionNames = existingPermissions.map(p => p.permissionName);
@@ -126,9 +127,9 @@ const seedPermissions = async () => {
       
       if (newPermissions.length > 0) {
         await Permission.insertMany(newPermissions);
-        console.log(`✅ Đã thêm ${newPermissions.length} permissions mới!`);
+        console.log(` Đã thêm ${newPermissions.length} permissions mới!`);
       } else {
-        console.log("✅ Tất cả permissions đã tồn tại.");
+        console.log(" Tất cả permissions đã tồn tại.");
       }
     }
 
@@ -142,7 +143,7 @@ const seedPermissions = async () => {
       rolePermissions: await RolePermission.find()
     };
   } catch (error) {
-    console.error("❌ Lỗi khi khởi tạo permissions:", error);
+    console.error(" Lỗi khi khởi tạo permissions:", error);
     throw error;
   }
 };

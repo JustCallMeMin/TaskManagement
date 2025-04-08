@@ -12,7 +12,7 @@ class TaskService {
   async getAllTasks() {
     try {
       console.log('Fetching all tasks...');
-      const response = await api.get("/api/tasks");
+      const response = await api.get("/tasks");
       console.log('Task API response received:', response.status);
       
       // Check if the response has a data property (new format) or is an array (old format)

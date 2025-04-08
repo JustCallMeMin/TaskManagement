@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { CircularProgress, Box, Typography, Paper, Container } from '@mui/material';
 import { toast } from 'react-toastify';
 import { authService } from '../services/auth.service';
@@ -61,46 +61,16 @@ const OAuthCallback = () => {
 
         console.log('Final token type:', typeof token);
         console.log('Final token preview:', token.substring(0, 20) + '...');
-        
-        // Store raw token in localStorage without Bearer prefix
-        localStorage.setItem('token', token);
-        
-        // Try to parse user from token
-        let userData;
-        try {
-          userData = authService.parseUserFromToken(token);
-          console.log('Parsed user data:', userData ? 'success' : 'failed');
-        } catch (parseError) {
-          console.error('Error parsing token:', parseError);
-          setError('Token không hợp lệ');
-          localStorage.removeItem('token');
-          setProcessing(false);
-          return;
-        }
-        
-        if (!userData) {
-          console.error('Could not parse user data from token');
-          setError('Token không hợp lệ');
-          localStorage.removeItem('token');
-          setProcessing(false);
-          return;
-        }
 
-        // Call login function to update context
-        console.log('Calling login with userData type:', typeof userData);
-        await login(userData);
-        toast.success('Đăng nhập thành công');
+        // Call login with token
+        await login({ token });
         
-        // Make sure the Authorization header is set correctly for all future requests
-        // This ensures the next API call will have the correct header
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        // Redirect to dashboard
+        // Navigate to dashboard
         navigate('/dashboard');
-      } catch (err) {
-        console.error('OAuth callback error:', err);
-        setError(err.message || 'Lỗi xác thực. Vui lòng thử lại.');
-        setProcessing(false);
+      } catch (error) {
+        console.error('OAuth callback error:', error);
+        setError(error.message);
+        navigate('/login');
       }
     };
 

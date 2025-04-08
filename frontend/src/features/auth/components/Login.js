@@ -17,7 +17,6 @@ import {
 	InputAdornment,
 	IconButton,
 } from "@mui/material";
-import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "react-toastify";
 import { authService } from "../services/auth.service";
 import { ERROR_MESSAGES, SUCCESS_MESSAGES, API_URL } from "../../../shared/utils/constants";
@@ -33,7 +32,6 @@ const schema = yup.object().shape({
 
 const Login = () => {
 	const navigate = useNavigate();
-	const { login } = useAuth();
 	const [loading, setLoading] = useState(false);
 	const [serverError, setServerError] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
@@ -58,22 +56,9 @@ const Login = () => {
 
 			const response = await authService.login(data);
 
-			// Handle token from the normalized response from auth service
-			// The token might be directly in response or in response.data
-			const token = response.token || response.data?.token;
-			const user = response.user || response.data?.user;
-
-			if (!token) {
-				throw new Error("Đăng nhập thất bại: Token không tồn tại trong phản hồi");
-			}
-			
-			try {
-				await login(token, user);
+			if (response.success) {
 				toast.success(SUCCESS_MESSAGES.LOGIN);
 				navigate("/dashboard");
-			} catch (tokenError) {
-				console.error("Token storage error:", tokenError);
-				setServerError("Lỗi xử lý đăng nhập. Vui lòng thử lại.");
 			}
 
 		} catch (error) {

@@ -1,11 +1,13 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import theme from './shared/utils/theme';
 import App from './App';
 import reportWebVitals from './shared/utils/testing/reportWebVitals';
 import 'react-toastify/dist/ReactToastify.css';
+import { AuthProvider } from './features/auth/contexts/AuthContext';
+import './index.css';
 
 // Ensure the DOM is fully loaded
 const container = document.getElementById('root');
@@ -13,15 +15,19 @@ if (!container) {
   throw new Error('Failed to find the root element');
 }
 
-const root = createRoot(container);
+const root = ReactDOM.createRoot(container);
 
 root.render(
-  <BrowserRouter>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <App />
-    </ThemeProvider>
-  </BrowserRouter>
+  <React.StrictMode>
+    <BrowserRouter>
+      <AuthProvider>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <App />
+        </ThemeProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  </React.StrictMode>
 );
 
 // If you want to start measuring performance in your app, pass a function

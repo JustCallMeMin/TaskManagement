@@ -179,14 +179,25 @@ class AuthController {
 	static async logout(req, res) {
 		try {
 			const refreshToken = req.cookies.refreshToken;
-			await AuthService.logout(req.user.id, refreshToken);
-
-			// Clear refresh token cookie
+			
+			// Clear cookie regardless of refresh token presence
 			res.clearCookie("refreshToken");
-
+			
+			// If refresh token exists, try to revoke it
+			if (refreshToken) {
+				try {
+					await AuthService.logout(req.user.id, refreshToken);
+				} catch (error) {
+					console.warn('Error revoking refresh token:', error);
+				}
+			}
+			
 			return successResponse(res, null, "Đăng xuất thành công.");
 		} catch (error) {
-			return errorResponse(res, error.message, 500);
+			console.error('Logout error:', error);
+			// Even if there's an error, we should clear the cookie and return success
+			res.clearCookie("refreshToken");
+			return successResponse(res, null, "Đăng xuất thành công.");
 		}
 	}
 

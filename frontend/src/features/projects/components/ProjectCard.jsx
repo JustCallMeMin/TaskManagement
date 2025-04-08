@@ -98,99 +98,103 @@ const ProjectCard = ({ project, onEdit, onDelete, onManageMembers }) => {
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardActionArea onClick={handleCardClick}>
-        <CardContent sx={{ flexGrow: 1, position: 'relative', pb: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-            <Typography variant="h6" component="div" noWrap sx={{ flexGrow: 1 }}>
-              {project.name}
-              {project.isPersonal && (
-                <Chip 
-                  label="Personal" 
-                  size="small" 
-                  color="primary" 
-                  variant="outlined"
-                  sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} 
-                />
-              )}
-            </Typography>
-            <IconButton 
-              size="small" 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMenuOpen(e);
-              }}
-              sx={{ 
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                }
-              }}
-            >
-              <MoreIcon fontSize="small" />
-            </IconButton>
-          </Box>
-          
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2, height: 40, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {project.description || 'No description'}
-          </Typography>
-          
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Progress
-            </Typography>
-            <LinearProgress 
-              variant="determinate" 
-              value={progress} 
-              sx={{ height: 8, borderRadius: 5 }}
-            />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-              <Typography variant="caption" color="text.secondary">
-                {project.taskStats?.completed || 0} / {project.taskStats?.total || 0} tasks
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {progress}%
+      <Box sx={{ position: 'relative' }}>
+        <IconButton 
+          size="small" 
+          onClick={(e) => {
+            e.stopPropagation();
+            handleMenuOpen(e);
+          }}
+          sx={{ 
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            '&:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)'
+            },
+            zIndex: 1 // Đảm bảo hiển thị trên CardActionArea
+          }}
+        >
+          <MoreIcon fontSize="small" />
+        </IconButton>
+        
+        <CardActionArea onClick={handleCardClick}>
+          <CardContent sx={{ flexGrow: 1, position: 'relative', pb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+              <Typography variant="h6" component="div" noWrap sx={{ flexGrow: 1, pr: 4 }}>
+                {project.name}
+                {project.isPersonal && (
+                  <Chip 
+                    label="Personal" 
+                    size="small" 
+                    color="primary" 
+                    variant="outlined"
+                    sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} 
+                  />
+                )}
               </Typography>
             </Box>
-          </Box>
-          
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Chip 
-                  label={PROJECT_STATUS_LABELS[project.status] || project.status}
-                  size="small"
-                  color={PROJECT_STATUS_COLORS[project.status] || 'default'}
-                />
-                
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Tooltip title="Members">
-                    <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-                      <PersonIcon fontSize="small" sx={{ mr: 0.5 }} />
-                      <Typography variant="body2">
-                        {project.memberCount || 0}
-                      </Typography>
-                    </Box>
-                  </Tooltip>
+            
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, height: 40, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {project.description || 'No description'}
+            </Typography>
+            
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Progress
+              </Typography>
+              <LinearProgress 
+                variant="determinate" 
+                value={progress} 
+                sx={{ height: 8, borderRadius: 5 }}
+              />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                <Typography variant="caption" color="text.secondary">
+                  {project.taskStats?.completed || 0} / {project.taskStats?.total || 0} tasks
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {progress}%
+                </Typography>
+              </Box>
+            </Box>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Chip 
+                    label={PROJECT_STATUS_LABELS[project.status] || project.status}
+                    size="small"
+                    color={PROJECT_STATUS_COLORS[project.status] || 'default'}
+                  />
                   
-                  {project.endDate && (
-                    <Tooltip title="Due date">
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <TimeIcon fontSize="small" sx={{ mr: 0.5 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Tooltip title="Members">
+                      <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                        <PersonIcon fontSize="small" sx={{ mr: 0.5 }} />
                         <Typography variant="body2">
-                          {format(new Date(project.endDate), 'MMM d')}
+                          {project.memberCount || 0}
                         </Typography>
                       </Box>
                     </Tooltip>
-                  )}
+                    
+                    {project.endDate && (
+                      <Tooltip title="Due date">
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <TimeIcon fontSize="small" sx={{ mr: 0.5 }} />
+                          <Typography variant="body2">
+                            {format(new Date(project.endDate), 'MMM d')}
+                          </Typography>
+                        </Box>
+                      </Tooltip>
+                    )}
+                  </Box>
                 </Box>
-              </Box>
+              </Grid>
             </Grid>
-          </Grid>
-        </CardContent>
-      </CardActionArea>
+          </CardContent>
+        </CardActionArea>
+      </Box>
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}

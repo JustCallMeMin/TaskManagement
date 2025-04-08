@@ -1,7 +1,7 @@
-// Kiểm tra nếu không có REACT_APP_BACKEND_URL thì sử dụng giá trị mặc định
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001/api';
+// Base API URL without /api
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
 
-// API URLs
+// API URLs without /api prefix since it's already in the base URL
 const API_URLS = {
   AUTH_URL: `${API_URL}/auth`,
   USERS_URL: `${API_URL}/users`,

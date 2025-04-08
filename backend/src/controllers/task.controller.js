@@ -1,4 +1,5 @@
 const TaskService = require("../domain/services/task.service");
+const { successResponse, errorResponse } = require("../utils/response");
 
 class TaskController {
 	static async createPersonalTask(req, res) {
@@ -7,53 +8,74 @@ class TaskController {
 				...req.body,
 				isPersonal: true
 			});
-			res.status(201).json({
-				success: true,
-				data: task,
-				message: "Task cá nhân đã được tạo thành công."
-			});
+			return successResponse(res, task, "Task cá nhân đã được tạo thành công.", 201);
 		} catch (error) {
-			console.error("Error creating personal task:", error);
-			res.status(400).json({ success: false, error: error.message });
+			return errorResponse(res, error.message);
 		}
 	}
 
 	static async createProjectTask(req, res) {
 		try {
 			if (!req.body.projectId) {
-				return res.status(400).json({ error: "Project ID is required for project tasks" });
+				return errorResponse(res, "Project ID is required for project tasks");
 			}
 			
 			const task = await TaskService.createTask(req.user.id, {
 				...req.body,
 				isPersonal: false,
 			});
-			res.status(201).json({
-				success: true,
-				data: task,
-				message: "Task dự án đã được tạo thành công."
-			});
+			return successResponse(res, task, "Task dự án đã được tạo thành công.", 201);
 		} catch (error) {
-			res.status(400).json({ error: error.message });
+			return errorResponse(res, error.message);
 		}
 	}
 
 	static async updateTask(req, res) {
 		try {
-			const { taskId } = req.params;
-			console.log("🔍 Attempting to update task:", taskId);
-			console.log("🔍 Request body:", JSON.stringify(req.body));
-			
-			const updatedTask = await TaskService.updateTask(
+			const taskId = req.params.taskId;
+			const userId = req.user.id;
+			const updateData = req.body;
+
+			console.log('Update Task Debug:', {
+				userId,
+				userPermissions: req.user.permissions,
 				taskId,
-				req.user.id,
-				req.body
-			);
-			console.log("✅ Task updated successfully");
-			res.status(200).json(updatedTask);
+				updateData
+			});
+
+			// Get the task first
+			const task = await TaskService.getTaskById(taskId);
+			if (!task) {
+				return errorResponse(res, "Không tìm thấy công việc.", 404);
+			}
+
+			console.log('Task Data:', {
+				taskCreator: task.createdBy,
+				taskAssignee: task.assignedUserId,
+				userId,
+				isCreator: task.createdBy === userId,
+				isAssignee: task.assignedUserId === userId,
+				hasPermission: req.user.permissions?.includes("Edit Task")
+			});
+
+			// Check permissions - using string comparison since getTaskById returns string IDs
+			const canEdit = 
+				task.createdBy === userId || // Creator
+				task.assignedUserId === userId || // Assignee
+				req.user.permissions?.includes("Edit Task"); // Has permission
+
+			console.log('Permission check result:', { canEdit });
+
+			if (!canEdit) {
+				return errorResponse(res, "Không có quyền thực hiện hành động này.", 403);
+			}
+
+			// Proceed with update
+			const updatedTask = await TaskService.updateTask(taskId, updateData);
+			return successResponse(res, updatedTask, "Cập nhật công việc thành công.");
 		} catch (error) {
-			console.error("❌ Error updating task:", error.message);
-			res.status(400).json({ error: error.message });
+			console.error('Update Task Error:', error);
+			return errorResponse(res, error.message);
 		}
 	}
 
@@ -61,34 +83,24 @@ class TaskController {
 		try {
 			const { taskId } = req.params;
 			await TaskService.deleteTask(taskId, req.user.id);
-			res.status(204).send();
+			return successResponse(res, null, "Xóa công việc thành công.", 204);
 		} catch (error) {
-			res.status(400).json({ error: error.message });
+			return errorResponse(res, error.message);
 		}
 	}
 
 	static async getAllTasks(req, res) {
 		try {
-			console.log(`🔍 Getting all tasks for user: ${req.user.id}`);
 			const tasks = await TaskService.getAllTasks(req.user.id);
-			console.log(`🔍 Returning ${tasks.length} tasks`);
-			
-			// Always return 200 with a success response, even if tasks is empty
-			return res.status(200).json({
-				success: true,
-				data: tasks || [],
-				message: tasks.length > 0 
+			return successResponse(
+				res, 
+				tasks,
+				tasks.length > 0 
 					? "Danh sách công việc của bạn." 
-					: "Bạn chưa có công việc nào. Hãy tạo công việc đầu tiên."
-			});
+					: "Bạn chưa có công việc nào."
+			);
 		} catch (error) {
-			console.error("❌ Error getting tasks:", error);
-			// Still return 200 with empty array in case of error
-			return res.status(200).json({
-				success: true,
-				data: [],
-				message: "Không thể lấy danh sách công việc. Hãy thử lại sau."
-			});
+			return errorResponse(res, "Không thể lấy danh sách công việc.");
 		}
 	}
 
@@ -96,13 +108,9 @@ class TaskController {
 		try {
 			const { taskId } = req.params;
 			const task = await TaskService.getTaskById(taskId, req.user.id);
-			res.status(200).json({
-				success: true,
-				data: task,
-				message: "Chi tiết công việc."
-			});
+			return successResponse(res, task, "Chi tiết công việc.");
 		} catch (error) {
-			res.status(400).json({ error: error.message });
+			return errorResponse(res, error.message);
 		}
 	}
 
@@ -110,14 +118,10 @@ class TaskController {
 		try {
 			const { taskId } = req.params;
 			const { status } = req.body;
-			const updatedTask = await TaskService.updateTaskStatus(
-				taskId,
-				req.user.id,
-				status
-			);
-			res.status(200).json(updatedTask);
+			const updatedTask = await TaskService.updateTaskStatus(taskId, req.user.id, status);
+			return successResponse(res, updatedTask, "Cập nhật trạng thái thành công.");
 		} catch (error) {
-			res.status(400).json({ error: error.message });
+			return errorResponse(res, error.message);
 		}
 	}
 
@@ -125,14 +129,10 @@ class TaskController {
 		try {
 			const { taskId } = req.params;
 			const { assignedUserId } = req.body;
-			const updatedTask = await TaskService.assignTask(
-				taskId,
-				req.user.id,
-				assignedUserId
-			);
-			res.status(200).json(updatedTask);
+			const updatedTask = await TaskService.assignTask(taskId, req.user.id, assignedUserId);
+			return successResponse(res, updatedTask, "Gán công việc thành công.");
 		} catch (error) {
-			res.status(400).json({ error: error.message });
+			return errorResponse(res, error.message);
 		}
 	}
 }

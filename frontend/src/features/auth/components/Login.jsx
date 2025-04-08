@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -17,9 +16,9 @@ import {
   IconButton,
   CircularProgress
 } from '@mui/material';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/auth.service';
-import { ERROR_MESSAGES, SUCCESS_MESSAGES, ROUTES, API_URL } from '../../../shared/utils/constants';
+import { ERROR_MESSAGES, SUCCESS_MESSAGES, ROUTES, API_URLS } from '../../../shared/utils/constants';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import GoogleIcon from '@mui/icons-material/Google';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -41,7 +40,6 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
   const { login } = useAuth();
 
   const {
@@ -61,36 +59,18 @@ const Login = () => {
     setAuthError(''); // Clear previous errors
 
     try {
-      const response = await authService.login(data);
-
-      // Normal login success flow
-      await login(response.token, response.user);
-
-      // Redirect to dashboard or stored path
-      const redirectPath = sessionStorage.getItem('redirectPath') || '/dashboard';
-      sessionStorage.removeItem('redirectPath');
-      navigate(redirectPath);
-    } catch (error) {
+      await login(data);
+      // Navigation is now handled entirely in AuthContext
+    } catch (err) {
+      console.error('Login failed:', err);
+      setAuthError(err.message || 'Login failed. Please try again.');
+    } finally {
       setLoading(false);
-
-      // Extract error message for user-friendly display
-      let errorMessage = 'An error occurred while logging in. Please try again.';
-
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      }
-
-      console.error('Login error:', error);
-
-      // Set error message to display in the UI instead of using toast
-      setAuthError(errorMessage);
     }
   };
 
   const handleOAuthLogin = (provider) => {
-    window.location.href = `${API_URL}/auth/${provider}`;
+    window.location.href = `${API_URLS.AUTH_URL}/${provider}`;
   };
 
   return (

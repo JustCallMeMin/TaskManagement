@@ -1,5 +1,9 @@
 const TokenService = require("../services/token.service");
 const UserRepository = require("../domain/repositories/user.repository");
+const UserRoleRepository = require("../domain/repositories/user_role.repository");
+const RoleRepository = require("../domain/repositories/role.repository");
+const RolePermissionRepository = require("../domain/repositories/role_permission.repository");
+const PermissionRepository = require("../domain/repositories/permission.repository");
 const RefreshTokenRepository = require("../domain/repositories/refresh_token.repository");
 require("dotenv").config();
 
@@ -59,19 +63,48 @@ const authenticate = async (req, res, next) => {
 			const user = await UserRepository.findById(userId);
 			
 			console.log("Found user by ID:", user ? "User exists" : "User not found");
-			if (!user || user.isBlocked) {
-				return res
-					.status(401)
-					.json({ message: "Tài khoản không hợp lệ hoặc đã bị khóa" });
+			console.log("Found user by ID:", user);
+
+			if (!user) {
+				return res.status(401).json({ message: "Người dùng không tồn tại" });
 			}
 
-			// Gán thông tin user vào request với cả id và _id để đảm bảo tương thích
+			if (user.isBlocked) {
+				return res.status(403).json({ message: "Tài khoản đã bị khóa" });
+			}
+
+			// Lấy danh sách permissions của user từ roles
+			const userRoles = await UserRoleRepository.findByUserId(user._id);
+			const roleIds = userRoles.map(ur => ur.roleId);
+			
+			// Lấy tên của các role
+			const roles = await Promise.all(
+				userRoles.map(async (ur) => {
+					const role = await RoleRepository.findById(ur.roleId);
+					return role ? role.roleName : null;
+				})
+			).then(roleNames => roleNames.filter(Boolean)); // Lọc bỏ các giá trị null
+			
+			// Lấy danh sách permissions từ roles
+			const rolePermissions = await RolePermissionRepository.findByRoleIds(roleIds);
+			const permissions = await Promise.all(
+				rolePermissions.map(async (rp) => {
+					const permission = await PermissionRepository.findById(rp.permissionId);
+					return permission ? permission.permissionName : null;
+				})
+			).then(permNames => permNames.filter(Boolean));
+			
+			console.log("User roles:", roles);
+			console.log("User permissions:", permissions);
+
+			// Thêm thông tin vào req.user
 			req.user = {
-				id: user._id, // Thêm id để tương thích với code cũ
-				_id: user._id, // Giữ _id cho các phần mới
-				roles: decoded.roles || [],
-				permissions: decoded.permissions || [],
+				id: user._id,
+				_id: user._id,
 				fullName: user.fullName,
+				email: user.email,
+				roles: roles || [],
+				permissions: permissions || []
 			};
 
 			next();
@@ -105,12 +138,33 @@ const authenticate = async (req, res, next) => {
 					);
 					
 					const user = await UserRepository.findById(decoded.userId);
+					const userRoles = await UserRoleRepository.findByUserId(user._id);
+					const roleIds = userRoles.map(ur => ur.roleId);
+					
+					// Lấy tên của các role
+					const roles = await Promise.all(
+						userRoles.map(async (ur) => {
+							const role = await RoleRepository.findById(ur.roleId);
+							return role ? role.roleName : null;
+						})
+					).then(roleNames => roleNames.filter(Boolean)); // Lọc bỏ các giá trị null
+					
+					// Lấy danh sách permissions từ roles
+					const rolePermissions = await RolePermissionRepository.findByRoleIds(roleIds);
+					const permissions = await Promise.all(
+						rolePermissions.map(async (rp) => {
+							const permission = await PermissionRepository.findById(rp.permissionId);
+							return permission ? permission.permissionName : null;
+						})
+					).then(permNames => permNames.filter(Boolean));
+					
 					req.user = {
-						id: user._id, // Thêm id để tương thích với code cũ
-						_id: user._id, // Giữ _id cho các phần mới
-						roles: decoded.roles || [],
-						permissions: decoded.permissions || [],
+						id: user._id,
+						_id: user._id,
 						fullName: user.fullName,
+						email: user.email,
+						roles: roles || [],
+						permissions: permissions || []
 					};
 
 					next();

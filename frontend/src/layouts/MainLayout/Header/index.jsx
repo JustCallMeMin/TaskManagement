@@ -1,29 +1,16 @@
-import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  IconButton,
-  InputBase,
-  Badge,
-  Menu,
-  MenuItem,
-  Avatar,
-  Divider,
-  ListItemIcon
-} from '@mui/material';
-import {
-  Search as SearchIcon,
-  Notifications as NotificationsIcon,
-  Settings as SettingsIcon,
-  Person as PersonIcon,
-  Logout as LogoutIcon
-} from '@mui/icons-material';
+import React, { useState } from 'react';
+import { AppBar, Toolbar, Typography, IconButton, Box, Badge, Avatar, Tooltip, Menu, MenuItem } from '@mui/material';
+import { NotificationsOutlined, Search as SearchIcon, MoreVert as MoreIcon, Logout as LogoutIcon } from '@mui/icons-material';
 import './Header.css';
+import { useAuth } from '../../../features/auth/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-const Header = () => {
+const Header = ({ isAdmin = false, className = '' }) => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
 
-  const handleClick = (event) => {
+  const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
   };
 
@@ -31,104 +18,104 @@ const Header = () => {
     setAnchorEl(null);
   };
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = async () => {
     try {
-      // Đóng menu trước
+      await logout();
       handleClose();
-      // Xóa token
-      localStorage.clear();
-      // Đợi một chút để đảm bảo token đã được xóa
-      await new Promise(resolve => setTimeout(resolve, 100));
-      // Điều hướng về trang login
-      window.location.href = '/login';
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout failed:', error);
+      // Still close the menu even if logout fails
+      handleClose();
     }
-  }, []);
-
+  };
+  
   return (
-    <Box className="header">
-      <Box className="search-box">
-        <IconButton>
-          <SearchIcon />
-        </IconButton>
-        <InputBase
-          placeholder="Search anything..."
-          className="search-input"
-        />
-      </Box>
-      <Box className="header-actions">
-        <IconButton>
-          <Badge badgeContent={4} color="error">
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
-        <IconButton
-          onClick={handleClick}
-          aria-controls={open ? 'account-menu' : undefined}
-          aria-haspopup="true"
-          aria-expanded={open ? 'true' : undefined}
+    <AppBar position="sticky" color="default" elevation={0} className={`header ${className}`}>
+      <Toolbar sx={isAdmin ? { justifyContent: 'flex-start' } : {}}>
+        <Typography 
+          variant="h6" 
+          component="div" 
+          className={isAdmin ? 'admin-title' : ''}
+          sx={{ 
+            flexGrow: 0, 
+            display: { xs: 'none', sm: 'block' }, 
+            mr: 2,
+            fontWeight: isAdmin ? 500 : 400,
+          }}
         >
-          <Avatar sx={{ width: 32, height: 32 }}>M</Avatar>
-        </IconButton>
-      </Box>
-
-      <Menu
-        anchorEl={anchorEl}
-        id="account-menu"
-        open={open}
-        onClose={handleClose}
-        onClick={handleClose}
-        PaperProps={{
-          elevation: 0,
-          sx: {
-            overflow: 'visible',
-            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-            mt: 1.5,
-            '& .MuiAvatar-root': {
-              width: 32,
-              height: 32,
-              ml: -0.5,
-              mr: 1,
-            },
-            '&:before': {
-              content: '""',
-              display: 'block',
-              position: 'absolute',
-              top: 0,
-              right: 14,
-              width: 10,
-              height: 10,
-              bgcolor: 'background.paper',
-              transform: 'translateY(-50%) rotate(45deg)',
-              zIndex: 0,
-            },
-          },
-        }}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-      >
-        <MenuItem onClick={handleClose}>
-          <ListItemIcon>
-            <PersonIcon fontSize="small" />
-          </ListItemIcon>
-          Profile
-        </MenuItem>
-        <MenuItem onClick={handleClose}>
-          <ListItemIcon>
-            <SettingsIcon fontSize="small" />
-          </ListItemIcon>
-          Settings
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={handleLogout}>
-          <ListItemIcon>
-            <LogoutIcon fontSize="small" />
-          </ListItemIcon>
-          Logout
-        </MenuItem>
-      </Menu>
-    </Box>
+          {isAdmin ? 'Admin Dashboard' : 'Task Management'}
+        </Typography>
+        
+        <div className="search-container">
+          <SearchIcon className="search-icon" />
+          <input 
+            type="text" 
+            placeholder="Search..." 
+            className="search-input"
+          />
+        </div>
+        
+        <Box sx={{ flexGrow: 1 }} />
+        
+        <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+          <Tooltip title="Notifications">
+            <IconButton color="inherit">
+              <Badge badgeContent={4} color="error">
+                <NotificationsOutlined />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+          
+          <Tooltip title={user?.name || 'Profile'}>
+            <IconButton 
+              edge="end" 
+              aria-label="account of current user"
+              aria-haspopup="true"
+              onClick={handleMenu}
+              color="inherit"
+            >
+              <Avatar 
+                alt={user?.name || 'User'} 
+                src={user?.avatar || ''} 
+                sx={{ width: 32, height: 32 }}
+              >
+                {user?.name ? user.name.charAt(0) : 'U'}
+              </Avatar>
+            </IconButton>
+          </Tooltip>
+          <Menu
+            id="menu-appbar"
+            anchorEl={anchorEl}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            keepMounted
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            open={Boolean(anchorEl)}
+            onClose={handleClose}
+          >
+            <MenuItem onClick={handleLogout}>
+              <LogoutIcon sx={{ mr: 1 }} />
+              Logout
+            </MenuItem>
+          </Menu>
+        </Box>
+        
+        <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
+          <IconButton
+            aria-label="show more"
+            aria-haspopup="true"
+            color="inherit"
+          >
+            <MoreIcon />
+          </IconButton>
+        </Box>
+      </Toolbar>
+    </AppBar>
   );
 };
 

@@ -156,11 +156,44 @@ const validateRemoveMembers = checkSchema({
 
 // 🔹 Validate xóa dự án
 const validateDeleteProjects = checkSchema({
+	projectId: {
+		in: ["params"],
+		optional: true,
+		isMongoId: { errorMessage: "ID dự án không hợp lệ." },
+	},
+	ids: {
+		in: ["query"],
+		optional: true,
+		customSanitizer: {
+			options: (value) => {
+				// If query parameter 'ids' exists, convert it to an array
+				return value ? [value] : undefined;
+			}
+		}
+	},
 	projectIds: {
+		optional: true,
 		isArray: {
 			options: { min: 1 },
 			errorMessage: "Danh sách projectIds không hợp lệ.",
 		},
+		custom: {
+			// Convert URL param or query to body array if needed
+			options: (value, { req }) => {
+				// If projectIds not provided in body
+				if (!value) {
+					// Try to get from query parameter 'ids'
+					if (req.query.ids) {
+						req.body.projectIds = Array.isArray(req.query.ids) ? req.query.ids : [req.query.ids];
+					}
+					// Or from URL parameter
+					else if (req.params.projectId) {
+						req.body.projectIds = [req.params.projectId];
+					}
+				}
+				return true;
+			}
+		}
 	},
 });
 

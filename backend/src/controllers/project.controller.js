@@ -63,10 +63,29 @@ class ProjectController {
     // 5️⃣ Xóa nhiều dự án
     static async deleteProjects(req, res) {
         try {
-            const { projectIds } = req.body;
-            if (!Array.isArray(projectIds) || projectIds.length === 0) {
+            // Lấy projectIds từ body hoặc query parameters
+            let projectIds;
+            
+            if (req.body && req.body.projectIds) {
+                // Nếu có trong body
+                projectIds = req.body.projectIds;
+            } else if (req.query && req.query.ids) {
+                // Nếu có trong query (ids=123)
+                const ids = req.query.ids;
+                projectIds = Array.isArray(ids) ? ids : [ids];
+            } else {
+                // Trường hợp xóa một dự án cụ thể (/projects/:id)
+                const projectId = req.params.id;
+                if (projectId) {
+                    projectIds = [projectId];
+                }
+            }
+
+            if (!projectIds || (Array.isArray(projectIds) && projectIds.length === 0)) {
                 return errorResponse(res, "Danh sách projectIds không hợp lệ.", 400);
             }
+            
+            console.log("🗑️ Xóa dự án với IDs:", projectIds);
             const result = await ProjectService.deleteProjects(projectIds);
             return successResponse(res, result, "Dự án đã được xóa thành công.");
         } catch (error) {

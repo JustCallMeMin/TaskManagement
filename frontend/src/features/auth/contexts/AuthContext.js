@@ -1,58 +1,79 @@
 import React, { createContext, useState, useContext, useCallback } from 'react';
+import { authService } from '../services/auth.service';
+import { LOCAL_STORAGE_KEYS } from '../../../shared/utils/constants';
+import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from "jwt-decode";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  
+  const [user, setUser] = useState(() => {
+    const token = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN);
+    const storedUser = localStorage.getItem(LOCAL_STORAGE_KEYS.USER);
+    
+    if (!token || !storedUser) {
+      return null;
+    }
 
-  const login = useCallback(async (credentials) => {
-    setLoading(true);
-    setError(null);
     try {
-      // TODO: Implement actual login logic
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
+      const userData = JSON.parse(storedUser);
+      const decodedToken = jwtDecode(token);
       
-      if (!response.ok) {
-        throw new Error('Login failed');
+      // Verify token is valid
+      if (decodedToken.exp * 1000 < Date.now()) {
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+        return null;
       }
 
-      const userData = await response.json();
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
+      return userData;
+    } catch {
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+      return null;
+    }
+  });
+
+  const login = useCallback(async (credentials) => {
+    try {
+      const { user } = await authService.login(credentials);
+      setUser(user);
+      
+      // Use the same approach as Google OAuth - force a complete browser navigation
+      // This ensures a clean application state with the new authentication credentials
+      const targetPath = user.isAdmin ? '/admin/dashboard' : '/dashboard';
+      
+      console.log('Login successful, navigating to:', targetPath);
+      
+      // Small delay to ensure localStorage is fully updated before navigation
+      setTimeout(() => {
+        window.location.replace(targetPath);
+      }, 100);
+      
+      return user;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await authService.logout();
     setUser(null);
-    localStorage.removeItem('user');
-  }, []);
+    navigate('/login', { replace: true });
+  }, [navigate]);
 
   const value = {
     user,
-    loading,
-    error,
     login,
     logout,
+    isAuthenticated: !!user,
+    isAdmin: user?.isAdmin || false
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

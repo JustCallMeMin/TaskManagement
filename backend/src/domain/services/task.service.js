@@ -113,40 +113,22 @@ class TaskService {
 	}
 
 	// 🔹 Cập nhật Task
-	static async updateTask(taskId, userId, taskData) {
-		console.log("🔍 Service: Updating task:", taskId);
-		console.log("🔍 Service: Update data:", JSON.stringify(taskData));
-		
-		const task = await TaskRepository.findById(taskId);
-		if (!task) {
-			console.error("❌ Service: Task not found");
-			throw new Error("Task không tồn tại.");
-		}
-
-		// Log the full task and user ID for debugging
-		console.log("🔍 Service: Task data:", JSON.stringify(task));
-		console.log("🔍 Service: Current user ID:", userId);
-		console.log("🔍 Service: Task assignedUserId:", task.assignedUserId?.toString());
-
-		// Allow updating if user created the task or is assigned to it
-		// Use optional chaining and String() to safely convert IDs to strings
-		const isCreator = task.createdBy ? String(task.createdBy) === String(userId) : false;
-		const isAssigned = task.assignedUserId ? String(task.assignedUserId) === String(userId) : false;
-		
-		console.log("🔍 Service: User permissions check - isCreator:", isCreator, "isAssigned:", isAssigned);
-		
-		// Let creator or assigned user update the task
-		if (!isCreator && !isAssigned) {
-			console.error("❌ Service: User lacks permission to update task");
-			throw new Error("Bạn không có quyền cập nhật task này.");
-		}
-
+	static async updateTask(taskId, updateData) {
 		try {
-			const updatedTask = await TaskRepository.update(taskId, taskData);
-			console.log("✅ Service: Task updated successfully");
+			// Validate task exists
+			const task = await TaskRepository.findById(taskId);
+			if (!task) {
+				throw new Error("Không tìm thấy công việc.");
+			}
+
+			// Update task
+			const updatedTask = await TaskRepository.update(taskId, updateData);
+			if (!updatedTask) {
+				throw new Error("Cập nhật công việc thất bại.");
+			}
+
 			return updatedTask;
 		} catch (error) {
-			console.error("❌ Service: Error in repository update:", error.message);
 			throw error;
 		}
 	}
@@ -187,17 +169,34 @@ class TaskService {
 	}
 
 	// 🔹 Lấy chi tiết Task
-	static async getTaskById(taskId, userId) {
-		const task = await TaskRepository.findById(taskId);
-		if (!task) throw new Error("Task không tồn tại.");
+	static async getTaskById(taskId) {
+		try {
+			console.log('Getting task by ID:', taskId);
+			
+			const task = await TaskRepository.findById(taskId);
+			if (!task) {
+				throw new Error("Task không tồn tại.");
+			}
 
-		// Allow any authenticated user to view task details
-		// Remove the restriction that only allows assigned users to view tasks
-		// if (task.assignedUserId.toString() !== userId) {
-		//   throw new Error("Bạn không có quyền xem task này.");
-		// }
+			console.log('Found task:', {
+				id: task._id,
+				createdBy: task.createdBy,
+				assignedUserId: task.assignedUserId
+			});
 
-		return task;
+			// Ensure we return a plain object with string IDs
+			const taskData = task.toObject();
+			taskData.id = taskData._id.toString();
+			taskData.createdBy = taskData.createdBy.toString();
+			if (taskData.assignedUserId) {
+				taskData.assignedUserId = taskData.assignedUserId.toString();
+			}
+
+			return taskData;
+		} catch (error) {
+			console.error('Error in getTaskById:', error);
+			throw error;
+		}
 	}
 }
 

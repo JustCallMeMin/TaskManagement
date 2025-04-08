@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -10,15 +10,14 @@ import {
   Notifications as NotifyIcon,
   Settings as SettingsIcon,
   Folder as FilesIcon,
-  AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
-import './Sidebar.css';
 import { useAuth } from '../../../features/auth/contexts/AuthContext';
+import './Sidebar.css';
 
-const Sidebar = () => {
+const UserSidebar = () => {
   const location = useLocation();
   const [activeItem, setActiveItem] = useState('dashboard');
-  const { user, loading, authVersion } = useAuth();
+  const { loading } = useAuth();
   
   useEffect(() => {
     const path = location.pathname;
@@ -28,13 +27,21 @@ const Sidebar = () => {
       setActiveItem('tasks');
     } else if (path.startsWith('/projects')) {
       setActiveItem('projects');
-    } else if (path.startsWith('/admin')) {
-      setActiveItem('admin');
+    } else if (path.startsWith('/timeline')) {
+      setActiveItem('timeline');
+    } else if (path.startsWith('/messages')) {
+      setActiveItem('message');
+    } else if (path.startsWith('/notifications')) {
+      setActiveItem('notify');
+    } else if (path.startsWith('/settings')) {
+      setActiveItem('settings');
+    } else if (path.startsWith('/files')) {
+      setActiveItem('files');
     }
   }, [location]);
 
-  // Basic menu items for all users
-  const basicMenuItems = [
+  // User menu items
+  const userMenuItems = [
     { id: 'dashboard', icon: <DashboardIcon />, label: 'Dashboard', path: '/dashboard' },
     { id: 'projects', icon: <ProjectsIcon />, label: 'Projects', path: '/projects' },
     { id: 'tasks', icon: <TasksIcon />, label: 'Tasks', path: '/tasks' },
@@ -45,31 +52,9 @@ const Sidebar = () => {
     { id: 'files', icon: <FilesIcon />, label: 'Files', path: '/files' },
   ];
   
-  // Admin menu item
-  const adminMenuItem = { 
-    id: 'admin', 
-    icon: <AdminIcon />, 
-    label: 'Admin', 
-    path: '/admin' 
-  };
-  
-  const menuItems = useMemo(() => {
-    console.log('Computing menuItems. isAdmin:', user?.isAdmin);
-    if (user?.isAdmin) {
-      return [
-        ...basicMenuItems.slice(0, 3),
-        adminMenuItem,
-        ...basicMenuItems.slice(3)
-      ];
-    }
-    return basicMenuItems;
-  }, [user?.isAdmin, authVersion, basicMenuItems, adminMenuItem]);
-
-  console.log("Rendering Sidebar. isAdmin =", user?.isAdmin, "Menu length =", menuItems.length);
-
   // Handle loading state in render
   if (loading) {
-    console.log('Sidebar waiting for auth to complete...');
+    console.log('UserSidebar waiting for auth to complete...');
     return null;
   }
 
@@ -79,7 +64,7 @@ const Sidebar = () => {
         <img src="/assets/images/logo.svg" alt="Logo" className="logo-image" />
       </Link>
       <div className="menu">
-        {menuItems.map((item) => (
+        {userMenuItems.map((item) => (
           <Link 
             to={item.path} 
             key={item.id}
@@ -98,4 +83,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar; 
+export default UserSidebar; 

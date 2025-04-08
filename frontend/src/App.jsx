@@ -1,35 +1,47 @@
 import React from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import MainLayout from './layouts/MainLayout';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import UserLayout from './layouts/UserLayout';
+import AdminLayout from './layouts/AdminLayout';
 import Dashboard from './features/dashboard/components/Dashboard';
 import TaskPage from './features/tasks/pages/TaskPage';
 import Login from './features/auth/components/Login';
 import Register from './features/auth/components/Register';
-import { AuthProvider } from './contexts/AuthContext';
-import OAuthCallback from './features/auth/components/OAuthCallback';
+import { useAuth } from './features/auth/contexts/AuthContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ProjectsPage, ProjectDetailPage } from './features/projects';
+import AdminDashboard from './features/admin/pages/AdminDashboard';
+import UserManagement from './features/admin/components/UserManagement';
 
 const PrivateRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  const location = useLocation();
-
-  console.log('Current token:', token ? 'Token exists' : 'No token');
+  const { user, isAuthenticated } = useAuth();
   
-  if (!token) {
-    // Redirect to login page with the return url
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
+
+const AdminRoute = ({ children }) => {
+  const { user, isAuthenticated, isAdmin } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
 };
 
 const App = () => {
-  const token = localStorage.getItem('token');
+  const { user, isAuthenticated, isAdmin } = useAuth();
 
   return (
-    <AuthProvider>
+    <>
       <ToastContainer 
         position="top-right"
         autoClose={3000}
@@ -43,52 +55,51 @@ const App = () => {
         limit={1}
       />
       <Routes>
-        {/* Root redirect */}
-        <Route
-          path="/"
-          element={
-            token ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-
         {/* Public routes */}
         <Route path="/login" element={
-          token ? <Navigate to="/dashboard" replace /> : <Login />
+          isAuthenticated ? (
+            <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} replace />
+          ) : (
+            <Login />
+          )
         } />
         
         <Route path="/register" element={
-          token ? <Navigate to="/dashboard" replace /> : <Register />
+          isAuthenticated ? (
+            <Navigate to={isAdmin ? "/admin/dashboard" : "/dashboard"} replace />
+          ) : (
+            <Register />
+          )
         } />
-        
-        {/* OAuth callback route */}
-        <Route path="/oauth/callback" element={<OAuthCallback />} />
 
-        {/* Protected routes with MainLayout */}
-        <Route 
-          element={
-            <PrivateRoute>
-              <MainLayout />
-            </PrivateRoute>
-          }
-        >
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/tasks/*" element={<TaskPage />} />
-          
-          {/* Project routes */}
-          <Route path="/projects" element={<ProjectsPage />} />
-          <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
-          
-          {/* Add other protected routes here */}
+        {/* Admin routes */}
+        <Route path="/admin" element={
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        }>
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="users" element={<UserManagement />} />
         </Route>
 
-        {/* Catch all route */}
+        {/* User routes */}
+        <Route path="/" element={
+          <PrivateRoute>
+            <UserLayout />
+          </PrivateRoute>
+        }>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="tasks/*" element={<TaskPage />} />
+          <Route path="projects" element={<ProjectsPage />} />
+          <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+        </Route>
+
+        {/* Catch all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </AuthProvider>
+    </>
   );
 };
 

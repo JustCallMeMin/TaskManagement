@@ -23,6 +23,23 @@ class UserService {
 		}
 	}
 
+	async searchUsers(searchTerm) {
+		try {
+			console.log(`Searching users with term: ${searchTerm}`);
+			// Sử dụng endpoint tìm kiếm người dùng theo tên
+			const response = await api.get(`/users/search?query=${encodeURIComponent(searchTerm)}`);
+			
+			// The API returns { success: true, data: [...], message: string }
+			const userData = response.data?.data || response.data || [];
+			console.log(`Found ${userData.length} users matching "${searchTerm}"`);
+			
+			return userData;
+		} catch (error) {
+			console.error('Error searching users:', error);
+			return []; // Return empty array for any error
+		}
+	}
+
 	async getUserById(userId) {
 		try {
 			const response = await api.get(`/users/${userId}`);

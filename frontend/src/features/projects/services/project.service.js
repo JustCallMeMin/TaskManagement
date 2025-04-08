@@ -12,7 +12,7 @@ class ProjectService {
   async getAllProjects() {
     try {
       // Always try the real API call first
-      const response = await api.get('/api/projects');
+      const response = await api.get('/projects');
       console.log('Complete API response:', {
         status: response.status,
         data: response.data
@@ -68,7 +68,8 @@ class ProjectService {
    */
   async createProject(projectData) {
     try {
-      const response = await api.post('/api/projects', projectData);
+      // Use the correct API endpoint
+      const response = await api.post('/projects/organization', projectData);
       return response.data;
     } catch (error) {
       console.error('Error creating project:', error);
@@ -84,7 +85,7 @@ class ProjectService {
    */
   async updateProject(projectId, projectData) {
     try {
-      const response = await api.put(`/api/projects/${projectId}`, projectData);
+      const response = await api.put(`/projects/${projectId}`, projectData);
       return response.data;
     } catch (error) {
       console.error('Error updating project:', error);
@@ -99,8 +100,15 @@ class ProjectService {
    */
   async deleteProjects(projectIds) {
     try {
-      const response = await api.delete('/api/projects', { data: { projectIds } });
-      return response.data;
+      // For deleting a single project
+      if (projectIds.length === 1) {
+        // Send project IDs as a query parameter instead of in body for DELETE requests
+        const response = await api.delete(`/projects/${projectIds[0]}?ids=${projectIds[0]}`);
+        return response.data;
+      }
+      
+      // For batch delete - not currently supported by backend
+      throw new Error('Batch delete not supported');
     } catch (error) {
       console.error('Error deleting projects:', error);
       throw error;
@@ -115,7 +123,7 @@ class ProjectService {
    */
   async addMembers(projectId, memberIds) {
     try {
-      const response = await api.post(`/api/projects/${projectId}/members`, { members: memberIds });
+      const response = await api.post(`/projects/${projectId}/members`, { members: memberIds });
       return response.data;
     } catch (error) {
       console.error('Error adding members:', error);
@@ -131,7 +139,7 @@ class ProjectService {
    */
   async removeMembers(projectId, userIds) {
     try {
-      const response = await api.delete(`/api/projects/${projectId}/members`, { data: { userIds } });
+      const response = await api.delete(`/projects/${projectId}/members`, { data: { userIds } });
       return response.data;
     } catch (error) {
       console.error('Error removing members:', error);
@@ -147,7 +155,7 @@ class ProjectService {
   async getProjectById(projectId) {
     try {
       console.log(`Fetching project details for ID: ${projectId}`);
-      const response = await api.get(`/api/projects/${projectId}`);
+      const response = await api.get(`/projects/${projectId}`);
       console.log('Project details response:', response);
       
       // The API returns { success: true, data: {...}, message: string }
@@ -189,7 +197,7 @@ class ProjectService {
   async getProjectMembers(projectId) {
     try {
       console.log(`Fetching members for project ID: ${projectId}`);
-      const response = await api.get(`/api/projects/${projectId}/members`);
+      const response = await api.get(`/projects/${projectId}/members`);
       console.log('Project members response:', response);
       
       // The API returns { success: true, data: [...], message: string }

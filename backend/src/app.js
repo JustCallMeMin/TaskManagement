@@ -6,6 +6,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+const methodOverride = require("method-override"); // Add method-override for HTTP method override
 const passport = require("./config/oauth"); // Import cấu hình Passport
 const session = require("express-session"); // Thêm session middleware
 const { initWebSocket } = require("./config/websocket");
@@ -24,6 +25,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan("dev"));
+
+// Method Override middleware - helps with DELETE, PUT, etc. from clients that don't support it directly
+app.use(methodOverride('_method'));
+app.use(methodOverride((req, res) => {
+  if (req.headers['x-http-method-override']) {
+    return req.headers['x-http-method-override'];
+  }
+}));
 
 // Session middleware - cần thiết cho Passport
 app.use(

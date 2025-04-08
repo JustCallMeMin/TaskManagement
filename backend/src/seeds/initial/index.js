@@ -61,6 +61,19 @@ const rolePermissionsMap = {
     "Manage System Settings",
     "Manage 2FA",
   ],
+  Manager: [
+    "Update Profile",
+    "Create Project",
+    "Edit Project",
+    "Manage Project Members",
+    "Create Personal Task",
+    "Create Project Task",
+    "Assign Task",
+    "Edit Task",
+    "Delete Task",
+    "Change Task Status",
+    "View Reports",
+  ],
   User: ["Update Profile", "Create Personal Task", "Change Task Status"],
 };
 

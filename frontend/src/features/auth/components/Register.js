@@ -16,7 +16,7 @@ import {
 	InputAdornment,
 	IconButton
 } from "@mui/material";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import { toast } from "react-toastify";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";

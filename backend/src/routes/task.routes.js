@@ -40,6 +40,7 @@ router.put(
 router.delete(
 	"/:taskId",
 	authenticate,
+	authorize(["Delete Task"]),
 	validateTaskId,
 	TaskController.deleteTask
 );
