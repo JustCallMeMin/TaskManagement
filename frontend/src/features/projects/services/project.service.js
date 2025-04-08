@@ -116,17 +116,76 @@ class ProjectService {
   }
 
   /**
-   * Add members to a project
+   * Send invitations to users to join a project
    * @param {string} projectId Project ID
-   * @param {Array<string>} memberIds Array of user IDs to add
-   * @returns {Promise} Promise containing the updated project
+   * @param {Array<string>} memberIds Array of user IDs to invite
+   * @returns {Promise} Promise containing the invitation result
    */
   async addMembers(projectId, memberIds) {
     try {
+      if (!Array.isArray(memberIds) || memberIds.length === 0) {
+        console.error('Invalid member IDs:', memberIds);
+        throw new Error('Invalid member IDs');
+      }
+      
       const response = await api.post(`/projects/${projectId}/members`, { members: memberIds });
       return response.data;
     } catch (error) {
-      console.error('Error adding members:', error);
+      console.error('Error inviting members:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all pending project invitations for the current user
+   * @returns {Promise} Promise containing the list of invitations
+   */
+  async getMyInvitations() {
+    try {
+      const response = await api.get('/projects/invitations/me');
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Error getting invitations:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Accept a project invitation
+   * @param {string} invitationId Invitation ID
+   * @returns {Promise} Promise containing the result
+   */
+  async acceptInvitation(invitationId) {
+    try {
+      // Accept the invitation
+      const response = await api.post(`/projects/invitations/${invitationId}/accept`);
+      
+      // Force refresh the project list to ensure UI is updated
+      try {
+        // Intentionally not awaiting this to avoid blocking
+        this.getAllProjects();
+      } catch (refreshError) {
+        console.warn('Project list refresh failed after accepting invitation:', refreshError);
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reject a project invitation
+   * @param {string} invitationId Invitation ID
+   * @returns {Promise} Promise containing the result
+   */
+  async rejectInvitation(invitationId) {
+    try {
+      const response = await api.post(`/projects/invitations/${invitationId}/reject`);
+      return response.data;
+    } catch (error) {
+      console.error('Error rejecting invitation:', error);
       throw error;
     }
   }

@@ -9,7 +9,7 @@ import api from '../../../services/api.service';
 const OAuthCallback = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { setUser } = useAuth();
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(true);
 
@@ -62,20 +62,36 @@ const OAuthCallback = () => {
         console.log('Final token type:', typeof token);
         console.log('Final token preview:', token.substring(0, 20) + '...');
 
-        // Call login with token
-        await login({ token });
-        
-        // Navigate to dashboard
-        navigate('/dashboard');
+        // Sử dụng phương thức verifyToken thay vì login
+        try {
+          const result = await authService.verifyToken(token);
+          // Cập nhật context user nếu verifyToken thành công
+          setUser(result.user);
+          
+          // Chuyển hướng đến dashboard dựa trên vai trò
+          const targetPath = result.user.isAdmin ? '/admin/dashboard' : '/dashboard';
+          console.log('Token verification successful, navigating to:', targetPath);
+          
+          // Small delay to ensure localStorage is fully updated before navigation
+          setTimeout(() => {
+            window.location.replace(targetPath);
+          }, 100);
+        } catch (verifyError) {
+          console.error('Token verification failed:', verifyError);
+          setError('Xác thực token không thành công: ' + (verifyError.message || 'Unknown error'));
+          setProcessing(false);
+        }
       } catch (error) {
         console.error('OAuth callback error:', error);
-        setError(error.message);
-        navigate('/login');
+        setError(error.message || 'Đã xảy ra lỗi khi xử lý đăng nhập');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
       }
     };
 
     processOAuthCallback();
-  }, [location, login, navigate]);
+  }, [location, navigate]);
 
   if (processing) {
     return (

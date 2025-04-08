@@ -168,6 +168,43 @@ class TaskService {
 		}
 	}
 
+	// 🔹 Lấy tasks theo Project
+	static async getTasksByProject(projectId, userId) {
+		try {
+			console.log(`🔍 Getting tasks for project: ${projectId} and user: ${userId}`);
+			
+			// Check if project exists
+			const project = await ProjectRepository.findById(projectId);
+			if (!project) {
+				console.warn(`Project not found: ${projectId}`);
+				return [];
+			}
+			
+			// Check if user has access to this project
+			const isOwner = String(project.owner) === String(userId);
+			const isMember = project.members && project.members.some(
+				member => String(member) === String(userId) || 
+				        (member.userId && String(member.userId) === String(userId))
+			);
+			
+			// If neither owner nor member, and project is not personal, return empty array
+			if (!isOwner && !isMember && !project.isPersonal) {
+				console.warn(`User ${userId} does not have access to project ${projectId}`);
+				return [];
+			}
+
+			// Find all tasks for this project
+			const tasks = await TaskRepository.findByProjectId(projectId);
+			console.log(`🔍 Found ${tasks.length} tasks for project ${projectId}`);
+			
+			// Map each task to a DTO to ensure consistent formatting
+			return tasks.map(task => new TaskDTO(task)) || [];
+		} catch (error) {
+			console.error(`Error fetching tasks for project ${projectId}:`, error);
+			return [];
+		}
+	}
+
 	// 🔹 Lấy chi tiết Task
 	static async getTaskById(taskId) {
 		try {

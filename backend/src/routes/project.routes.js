@@ -31,11 +31,12 @@ router.put(
 	ProjectController.updateProject
 );
 
-// 🔹 Xóa Project (Chỉ Admin, chỉ xóa nếu không có Task đang thực hiện)
+// 🔹 Xóa Project 
+// Chỉ xóa nếu không có Task đang thực hiện
+// Cho phép người dùng xóa project cá nhân của mình
 router.delete(
 	"/:projectId",
 	authenticate,
-	authorize(["Delete Project"]),
 	validateDeleteProjects,
 	ProjectController.deleteProjects
 );
@@ -69,6 +70,27 @@ router.get(
 	"/:projectId/members",
 	authenticate,
 	ProjectController.getProjectMembers
+);
+
+// 🔹 Lấy danh sách lời mời dự án của người dùng hiện tại
+router.get(
+	"/invitations/me",
+	authenticate,
+	ProjectController.getUserInvitations
+);
+
+// 🔹 Chấp nhận lời mời dự án
+router.post(
+	"/invitations/:invitationId/accept",
+	authenticate,
+	ProjectController.acceptInvitation
+);
+
+// 🔹 Từ chối lời mời dự án
+router.post(
+	"/invitations/:invitationId/reject",
+	authenticate,
+	ProjectController.rejectInvitation
 );
 
 module.exports = router;

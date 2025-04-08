@@ -53,6 +53,10 @@ class TaskRepository {
     static async delete(taskId) {
         return Task.findByIdAndDelete(taskId);
     }
+    
+    static async findByProjectId(projectId) {
+        return Task.find({ projectId }).sort({ createdAt: -1 });
+    }
 }
 
 module.exports = TaskRepository;

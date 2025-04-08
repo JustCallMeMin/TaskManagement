@@ -19,6 +19,7 @@ router.post("/resend-activation", authController.resendActivation);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);
 router.post("/refresh-token", authController.refreshToken);
+router.post("/verify-token", authController.verifyToken);
 
 // OAuth routes (không cần auth)
 router.get("/google", authController.googleAuth);

@@ -36,11 +36,11 @@ router.put(
 	TaskController.updateTask
 );
 
-// 🔹 Xóa công việc
+// 🔹 Xóa công việc - Cho phép người dùng xóa task của chính họ hoặc task được giao cho họ
+// Middleware authorize được bỏ qua vì logic kiểm tra quyền được xử lý trong service
 router.delete(
 	"/:taskId",
 	authenticate,
-	authorize(["Delete Task"]),
 	validateTaskId,
 	TaskController.deleteTask
 );

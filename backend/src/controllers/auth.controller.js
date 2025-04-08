@@ -8,6 +8,8 @@ const transporter = require("../config/mail");
 const logger = require("../utils/logger");
 const RefreshTokenRepository = require("../domain/repositories/refresh_token.repository");
 const { validationResult } = require("express-validator");
+const crypto = require('crypto');
+const UserService = require("../domain/services/user.service");
 
 class AuthController {
 	static async register(req, res) {
@@ -155,23 +157,40 @@ class AuthController {
 
 	static async refreshToken(req, res) {
 		try {
-			const refreshToken = req.cookies.refreshToken;
+			console.log('Refreshing token...');
+			
+			// Kiểm tra token trong cookies và request body
+			let refreshToken = req.body.refreshToken;
+			const cookieToken = req.cookies?.refreshToken;
+			
+			// Nếu không có token trong body, thử lấy từ cookie
+			if (!refreshToken && cookieToken) {
+				console.log('Using refresh token from cookie');
+				refreshToken = cookieToken;
+			}
+			
+			console.log('Stored token found:', !!refreshToken);
 			if (!refreshToken) {
 				return errorResponse(res, "Refresh token không tồn tại.", 401);
 			}
 
-			const { token, user } = await AuthService.refreshToken(refreshToken);
+			const { token, refreshToken: newRefreshToken, user } = await AuthService.refreshToken(refreshToken);
 
-			// Set new refresh token cookie
-			res.cookie("refreshToken", refreshToken, {
+			// Cả hai cách: set cookie và trả về token trong response body
+			res.cookie("refreshToken", newRefreshToken, {
 				httpOnly: true,
 				secure: process.env.NODE_ENV === "production",
 				sameSite: "strict",
 				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 			});
 
-			return successResponse(res, { token, user: new UserDTO(user) });
+			return successResponse(res, { 
+				token, 
+				refreshToken: newRefreshToken, 
+				user: new UserDTO(user) 
+			});
 		} catch (error) {
+			console.log('Token refresh error:', error);
 			return errorResponse(res, error.message, 401);
 		}
 	}
@@ -597,6 +616,160 @@ class AuthController {
 			return errorResponse(res, error.message);
 		}
 	}
+
+	/**
+	 * Xác thực JWT token từ OAuth 
+	 * @param {Request} req 
+	 * @param {Response} res 
+	 * @returns 
+	 */
+	static async verifyToken(req, res) {
+		try {
+			const { token } = req.body;
+			
+			if (!token) {
+				return errorResponse(res, "Token không được cung cấp", 400);
+			}
+
+			// Xác thực JWT token
+			try {
+				// Giải mã token để lấy thông tin
+				console.log("Verifying token:", token.substring(0, 20) + "...");
+				const decoded = jwt.verify(token, process.env.JWT_SECRET);
+				
+				// Log chi tiết nội dung token để debug
+				console.log("Decoded token content:", JSON.stringify(decoded, null, 2));
+				
+				// Cố gắng tìm theo nhiều trường hợp ID có thể có trong token
+				const userId = decoded.id || decoded.userId || decoded.sub || decoded._id;
+				const email = decoded.email;
+				
+				if (!userId && !email) {
+					logger.warn("Token verified but no user ID or email found in token");
+					return errorResponse(res, "Token không chứa thông tin người dùng", 400);
+				}
+				
+				logger.info("Token verification successful", { userId, email });
+				
+				// Thử tìm user theo ID trước
+				let user = null;
+				if (userId) {
+					user = await UserRepository.findById(userId);
+				}
+				
+				// Nếu không tìm thấy user theo ID, thử tìm theo email
+				if (!user && email) {
+					user = await UserRepository.findByEmail(email);
+				}
+				
+				// Nếu vẫn không tìm thấy user và có email, tạo user mới
+				if (!user && email) {
+					logger.info("Creating new user from OAuth data", { email });
+					
+					// Tạo username từ email
+					let username = email.split('@')[0];
+					
+					// Kiểm tra xem username đã tồn tại chưa
+					const existingUser = await UserRepository.findByUsername(username);
+					if (existingUser) {
+						// Nếu username đã tồn tại, thêm một số ngẫu nhiên
+						username = `${username}${Math.floor(Math.random() * 10000)}`;
+					}
+					
+					// Lấy thông tin hồ sơ từ token nếu có
+					const name = decoded.name || (decoded.given_name && decoded.family_name ? 
+						`${decoded.given_name} ${decoded.family_name}` : 
+						username);
+					
+					// Tạo người dùng mới với thông tin từ OAuth
+					const newUser = {
+						email,
+						username,
+						name,
+						password: crypto.randomBytes(16).toString('hex'), // Mật khẩu ngẫu nhiên
+						emailVerified: true, // Email được xác minh bởi OAuth provider
+						oauthProvider: 'google', // hoặc lấy từ token
+						oauthId: decoded.sub || userId
+					};
+					
+					// Lưu người dùng mới vào cơ sở dữ liệu
+					try {
+						user = await UserService.createUser(newUser);
+						logger.info("New user created from OAuth", { userId: user._id });
+					} catch (createError) {
+						logger.error("Failed to create new user from OAuth", createError);
+						return errorResponse(res, "Không thể tạo người dùng mới từ OAuth", 500);
+					}
+				}
+				
+				if (!user) {
+					logger.warn("User not found and could not be created", { email, userId });
+					return errorResponse(res, "Không thể xác thực người dùng", 404);
+				}
+				
+				// Trả về thông tin người dùng an toàn
+				const userDTO = new UserDTO(user);
+				
+				// Nếu token hợp lệ, tạo một phiên đăng nhập mới
+				const deviceInfo = req.headers["user-agent"] || "Unknown Device";
+				
+				// Tạo token mới cho người dùng
+				const { accessToken, refreshToken } = await AuthService.createTokens(
+					user._id, 
+					user.email,
+					user.username,
+					user.roles || ["User"],
+					user.permissions || [],
+					deviceInfo,
+					req.ip
+				);
+
+				// Đảm bảo refresh token được lưu vào database
+				try {
+					// Kiểm tra xem token đã tồn tại trong DB chưa
+					const existingToken = await RefreshTokenRepository.findByToken(refreshToken);
+					if (!existingToken) {
+						logger.info("Saving new refresh token to database for OAuth user");
+						// Lưu vào database nếu chưa tồn tại
+						await RefreshTokenRepository.create({
+							userId: user._id,
+							token: refreshToken,
+							deviceInfo: deviceInfo,
+							ipAddress: req.ip,
+							expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 ngày
+						});
+					}
+				} catch (tokenError) {
+					logger.error("Error saving refresh token to database:", tokenError);
+					// Tiếp tục xử lý vì đây không phải lỗi nghiêm trọng
+				}
+				
+				// Thiết lập cookie refresh token để hỗ trợ cả hai cách xác thực
+				res.cookie("refreshToken", refreshToken, {
+					httpOnly: true,
+					secure: process.env.NODE_ENV === "production",
+					sameSite: "strict",
+					maxAge: 7 * 24 * 60 * 60 * 1000 // 7 ngày
+				});
+				
+				return successResponse(
+					res,
+					{
+						user: userDTO,
+						token: accessToken,
+						refreshToken: refreshToken
+					},
+					"Xác thực token thành công"
+				);
+			} catch (error) {
+				logger.error("Token verification failed", error);
+				return errorResponse(res, "Token không hợp lệ hoặc đã hết hạn", 401);
+			}
+		} catch (error) {
+			logger.error("Error in verifyToken:", error);
+			return errorResponse(res, error.message, 500);
+		}
+	}
 }
 
 // Export các phương thức static của AuthController
@@ -618,4 +791,5 @@ module.exports = {
 	getActiveSessions: AuthController.getActiveSessions,
 	revokeSession: AuthController.revokeSession,
 	resendActivation: AuthController.resendActivation,
+	verifyToken: AuthController.verifyToken,
 };

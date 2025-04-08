@@ -51,6 +51,21 @@ function initWebSocket(server) {
 				io.emit("taskCreated", task);
 			});
 
+			// Lắng nghe sự kiện thêm thành viên vào dự án
+			socket.on("addProjectMembers", (data) => {
+				console.log("👥 Adding members to project:", data);
+				// Gửi thông báo đến tất cả thành viên được thêm vào
+				if (data.members && Array.isArray(data.members)) {
+					data.members.forEach(memberId => {
+						io.to(memberId).emit("projectMemberAdded", {
+							projectId: data.projectId,
+							projectName: data.projectName,
+							addedBy: data.addedBy
+						});
+					});
+				}
+			});
+
 			// Lắng nghe sự kiện chỉnh sửa công việc
 			socket.on("editTask", (task) => {
 				console.log("✏️ Task edited:", task);

@@ -115,6 +115,55 @@ class UserService {
       throw new Error(error.message || "Failed to assign role");
     }
   }
+
+  /**
+   * Create a new user from OAuth data
+   * @param {Object} userData - User data from OAuth
+   * @returns {Promise<Object>} Created user
+   */
+  static async createUser(userData) {
+    try {
+      console.log("Creating new user from OAuth:", userData.email);
+      
+      // Nếu đã có tài khoản với email này, trả về lỗi
+      const existingUser = await User.findOne({ email: userData.email });
+      if (existingUser) {
+        return existingUser;
+      }
+      
+      // Tạo user mới
+      const user = new User({
+        fullName: userData.name,
+        email: userData.email,
+        username: userData.username,
+        password: userData.password, // Đã mã hóa từ bên ngoài
+        isVerified: userData.emailVerified || true, // Thường OAuth đã xác thực email
+        oauthProvider: userData.oauthProvider,
+        oauthId: userData.oauthId
+      });
+      
+      // Lưu user
+      await user.save();
+      
+      // Gán vai trò User cho người dùng mới
+      const userRole = await Role.findOne({ roleName: 'User' });
+      if (userRole) {
+        await UserRole.create({
+          userId: user._id,
+          roleId: userRole._id
+        });
+        
+        // Cập nhật thông tin vai trò trong user
+        user.roles = [userRole._id];
+        await user.save();
+      }
+      
+      return user;
+    } catch (error) {
+      console.error("Error in createUser:", error);
+      throw new Error("Failed to create user: " + error.message);
+    }
+  }
 }
 
 module.exports = UserService;

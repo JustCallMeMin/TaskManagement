@@ -91,15 +91,33 @@ class TaskController {
 
 	static async getAllTasks(req, res) {
 		try {
-			const tasks = await TaskService.getAllTasks(req.user.id);
-			return successResponse(
-				res, 
-				tasks,
-				tasks.length > 0 
-					? "Danh sách công việc của bạn." 
-					: "Bạn chưa có công việc nào."
-			);
+			// Get query parameters
+			const { projectId } = req.query;
+			const userId = req.user.id;
+			
+			// Different responses based on whether projectId is provided
+			let tasks;
+			let message;
+			
+			if (projectId) {
+				// Get tasks for specific project
+				console.log(`Fetching tasks for project: ${projectId}`);
+				tasks = await TaskService.getTasksByProject(projectId, userId);
+				message = tasks.length > 0
+					? `Danh sách công việc của dự án.`
+					: "Dự án chưa có công việc nào.";
+			} else {
+				// Get all tasks for user (across all projects)
+				console.log(`Fetching all tasks for user: ${userId}`);
+				tasks = await TaskService.getAllTasks(userId);
+				message = tasks.length > 0
+					? "Danh sách công việc của bạn."
+					: "Bạn chưa có công việc nào.";
+			}
+			
+			return successResponse(res, tasks, message);
 		} catch (error) {
+			console.error('Error in getAllTasks:', error);
 			return errorResponse(res, "Không thể lấy danh sách công việc.");
 		}
 	}

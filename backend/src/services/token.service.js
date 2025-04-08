@@ -4,7 +4,8 @@ const RefreshTokenRepository = require("../domain/repositories/refresh_token.rep
 const UserRepository = require("../domain/repositories/user.repository");
 
 class TokenService {
-	static generateAuthTokens(user) {
+	static async generateAuthTokens(user) {
+		// Tạo access token bằng JWT
 		const accessToken = jwt.sign(
 			{
 				userId: user._id,
@@ -15,12 +16,18 @@ class TokenService {
 			{ expiresIn: "15m" }
 		);
 
-		const refreshToken = jwt.sign(
-			{ userId: user._id },
-			process.env.JWT_REFRESH_SECRET,
-			{ expiresIn: "7d" }
-		);
+		// Tạo refresh token dạng chuỗi hex ngẫu nhiên (như AuthService)
+		const refreshToken = crypto.randomBytes(40).toString('hex');
+		
+		// Lưu refresh token vào database
+		// Hướng dẫn: Bạn có thể truyền thêm thông tin về thiết bị/IP khi sử dụng
+		await RefreshTokenRepository.create({
+			userId: user._id,
+			token: refreshToken,
+			expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 ngày
+		});
 
+		console.log("Generated new hex string refresh token in TokenService");
 		return { accessToken, refreshToken };
 	}
 
@@ -46,31 +53,55 @@ class TokenService {
 
 	static async refreshToken(oldRefreshToken) {
 		try {
-			// Verify the old refresh token
-			const decoded = this.verifyToken(oldRefreshToken, process.env.JWT_REFRESH_SECRET);
+			// Tìm refresh token trong database
+			const storedToken = await RefreshTokenRepository.findByToken(oldRefreshToken);
 			
-			// Check if refresh token exists in DB
-			const storedRefreshToken = await RefreshTokenRepository.findByToken(oldRefreshToken);
-			if (!storedRefreshToken) {
-				throw new Error("Refresh token không tồn tại hoặc đã bị thu hồi");
+			if (!storedToken) {
+				console.log("Refresh token không tìm thấy trong database");
+				throw new Error("Refresh token không tồn tại");
 			}
 			
-			// Get user
-			const user = await UserRepository.findById(decoded.userId);
+			// Xác nhận refresh token không hết hạn
+			if (storedToken.expiresAt < new Date()) {
+				console.log("Refresh token đã hết hạn");
+				await RefreshTokenRepository.revoke(oldRefreshToken);
+				throw new Error("Refresh token đã hết hạn");
+			}
+			
+			// Lấy userId từ stored token
+			const userId = storedToken.userId;
+			console.log("Đã tìm thấy userId từ refresh token:", userId);
+			
+			// Tìm người dùng theo userId
+			const user = await UserRepository.findById(userId);
 			if (!user) {
+				console.log("Người dùng không tồn tại với userId:", userId);
 				throw new Error("Người dùng không tồn tại");
 			}
 			
-			// Generate new tokens
-			const { accessToken, refreshToken: newRefreshToken } = this.generateAuthTokens(user);
+			// Tạo access token mới
+			const accessToken = jwt.sign(
+				{
+					userId: user._id,
+					roles: user.roles || ['User'],
+					userName: user.fullName
+				},
+				process.env.JWT_SECRET,
+				{ expiresIn: "15m" }
+			);
 			
-			// Revoke old refresh token and save new one
+			// Tạo refresh token mới dạng chuỗi hex ngẫu nhiên
+			const newRefreshToken = crypto.randomBytes(40).toString('hex');
+			console.log("Đã tạo refresh token mới dạng hex");
+			
+			// Thu hồi refresh token cũ và lưu mới
 			await RefreshTokenRepository.revoke(oldRefreshToken);
 			await RefreshTokenRepository.create({
 				userId: user._id,
 				token: newRefreshToken,
 				expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-				deviceInfo: storedRefreshToken.deviceInfo
+				deviceInfo: storedToken.deviceInfo,
+				ipAddress: storedToken.ipAddress
 			});
 			
 			return { accessToken, refreshToken: newRefreshToken };

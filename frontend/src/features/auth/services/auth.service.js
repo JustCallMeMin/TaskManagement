@@ -25,10 +25,57 @@ class AuthService {
 			localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, token);
 			localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(userData));
 			
+			// Lưu refresh token nếu có
+			if (response.data.data.refreshToken) {
+				console.log('Saving refresh token to localStorage from standard login');
+				localStorage.setItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN, response.data.data.refreshToken);
+			} else {
+				console.warn('No refresh token returned from server during standard login');
+			}
+			
 			// Set the Authorization header for future requests
 			this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
 			return { token, user: userData };
+		} catch (error) {
+			throw error;
+		}
+	}
+
+	// Phương thức xác thực thông qua token OAuth
+	async verifyToken(token) {
+		try {
+			const response = await this.api.post('/auth/verify-token', { token });
+			const userData = response.data.data.user;
+			
+			// Nếu backend trả về cả token và user
+			const jwtToken = response.data.data.token || token;
+
+			// Tạo userData từ token hoặc từ backend
+			const decodedToken = jwtDecode(jwtToken);
+			const enrichedUserData = {
+				...userData,
+				roles: decodedToken.roles || [],
+				permissions: decodedToken.permissions || [],
+				isAdmin: (decodedToken.roles || []).includes('Admin')
+			};
+
+			// Store auth data in localStorage
+			localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, jwtToken);
+			localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(enrichedUserData));
+			
+			// Lưu refresh token nếu có
+			if (response.data.data.refreshToken) {
+				console.log('Saving refresh token to localStorage');
+				localStorage.setItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN, response.data.data.refreshToken);
+			} else {
+				console.warn('No refresh token returned from server');
+			}
+			
+			// Set the Authorization header for future requests
+			this.api.defaults.headers.common['Authorization'] = `Bearer ${jwtToken}`;
+
+			return { token: jwtToken, user: enrichedUserData };
 		} catch (error) {
 			throw error;
 		}

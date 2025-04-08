@@ -6,12 +6,14 @@ import Dashboard from './features/dashboard/components/Dashboard';
 import TaskPage from './features/tasks/pages/TaskPage';
 import Login from './features/auth/components/Login';
 import Register from './features/auth/components/Register';
+import OAuthCallback from './features/auth/components/OAuthCallback';
 import { useAuth } from './features/auth/contexts/AuthContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ProjectsPage, ProjectDetailPage } from './features/projects';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
 import UserManagement from './features/admin/components/UserManagement';
+import ProjectInvitationsDrawer from './features/projects/components/ProjectInvitationsDrawer';
 
 const PrivateRoute = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
@@ -42,6 +44,7 @@ const App = () => {
 
   return (
     <>
+      {isAuthenticated && !isAdmin && <ProjectInvitationsDrawer />}
       <ToastContainer 
         position="top-right"
         autoClose={3000}
@@ -71,6 +74,9 @@ const App = () => {
             <Register />
           )
         } />
+        
+        {/* OAuth Callback Route */}
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
 
         {/* Admin routes */}
         <Route path="/admin" element={

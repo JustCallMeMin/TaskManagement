@@ -139,7 +139,12 @@ const ProjectDetail = () => {
       navigate('/projects');
     } catch (err) {
       console.error('Error deleting project:', err);
-      setError('Failed to delete project');
+      // Hiển thị thông báo lỗi chi tiết từ backend
+      const errorMessage = err.response?.data?.error ||
+                           err.response?.data?.message ||
+                           err.message ||
+                           'Failed to delete project';
+      setError(errorMessage);
     }
   };
 

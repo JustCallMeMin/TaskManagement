@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import {
   Dialog,
   DialogTitle,
@@ -19,7 +20,8 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Autocomplete
+  Autocomplete,
+  Tooltip
 } from '@mui/material';
 import {
   PersonRemove as RemoveIcon,
@@ -121,7 +123,7 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
     }
   };
 
-  const handleRemoveMember = async (userId) => {
+  const handleRemoveMember = async (member) => {
     if (!window.confirm('Are you sure you want to remove this member from the project?')) {
       return;
     }
@@ -132,16 +134,26 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
     }
     
     const projectId = project._id || project.projectId;
+    // Xác định đúng userId của thành viên cần xóa
+    const userId = member.userId || member._id;
+    
+    console.log('Removing member with userId:', userId);
     
     setLoading(true);
     try {
       await ProjectService.removeMembers(projectId, [userId]);
-      setMembers(members.filter(member => member.userId !== userId));
+      // Lọc thành viên dựa trên _id hoặc userId tùy vào cấu trúc dữ liệu
+      setMembers(members.filter(m => 
+        (m._id !== member._id) && 
+        (m.userId !== userId)
+      ));
       setError('');
       onChange(); // Notify parent component of the change
+      // Cập nhật lại danh sách thành viên
+      fetchMembers();
     } catch (err) {
       console.error('Error removing member:', err);
-      setError('Failed to remove member');
+      setError('Failed to remove member: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -152,19 +164,42 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
     
     setLoading(true);
     try {
-      const memberData = selectedUsers.map(user => ({
-        userId: user._id,
-        role: 'member'
-      }));
+      // Chỉ trích xuất mảng các userId, không gửi đối tượng phức tạp
+      const memberIds = selectedUsers.map(user => user._id);
       
-      await ProjectService.addMembers(project._id, memberData);
+      const result = await ProjectService.addMembers(project._id, memberIds);
+      
+      // Show success message
+      toast.success(
+        `Invitation${memberIds.length > 1 ? 's' : ''} sent to ${memberIds.length} user${memberIds.length > 1 ? 's' : ''}.`,
+        {autoClose: 3000}
+      );
+      
+      // Refresh members list and reset form
       fetchMembers();
       setSelectedUsers([]);
+      setSearchTerm('');
       setError('');
       onChange(); // Notify parent component of the change
     } catch (err) {
-      console.error('Error adding members:', err);
-      setError('Failed to add members');
+      console.error('Error sending invitations:', err);
+      // Get friendly error message from response
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || 'Failed to send invitations';
+      
+      // Show as toast instead of error state for better user experience
+      if (errorMsg.includes('đã là thành viên') || errorMsg.includes('đã được mời')) {
+        toast.info('Người dùng đã là thành viên hoặc đã được mời tham gia dự án này.', {
+          autoClose: 5000
+        });
+      } else {
+        toast.error(errorMsg, {
+          autoClose: 5000
+        });
+      }
+      
+      // Clear search and selection after error feedback
+      setSelectedUsers([]);
+      setSearchTerm('');
     } finally {
       setLoading(false);
     }
@@ -204,8 +239,11 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
         )}
         
         <Box sx={{ mb: 3 }}>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Users will need to accept your invitation before they become project members.
+          </Alert>
           <Typography variant="subtitle1" gutterBottom>
-            Add New Members
+            Invite New Members
           </Typography>
           
           <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
@@ -235,14 +273,19 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
                 />
               )}
               renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    avatar={<Avatar>{option.fullName ? option.fullName.charAt(0) : option.email.charAt(0)}</Avatar>}
-                    label={option.fullName || option.email}
-                    {...getTagProps({ index })}
-                    size="small"
-                  />
-                ))
+                value.map((option, index) => {
+                  const tagProps = getTagProps({ index });
+                  const { key, ...chipProps } = tagProps;
+                  return (
+                    <Chip
+                      key={key}
+                      avatar={<Avatar>{option.fullName ? option.fullName.charAt(0) : option.email.charAt(0)}</Avatar>}
+                      label={option.fullName || option.email}
+                      {...chipProps}
+                      size="small"
+                    />
+                  );
+                })
               }
               sx={{ flexGrow: 1, mr: 1 }}
               disabled={loading}
@@ -255,7 +298,7 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
               disabled={selectedUsers.length === 0 || loading}
               startIcon={<AddIcon />}
             >
-              Add
+              Invite
             </Button>
           </Box>
         </Box>
@@ -282,14 +325,22 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
                   secondary={member.email}
                 />
                 <ListItemSecondaryAction>
-                  <IconButton
-                    edge="end"
-                    onClick={() => handleRemoveMember(member._id)}
-                    disabled={loading || member._id === project.ownerId}
-                    color="error"
-                  >
-                    <RemoveIcon />
-                  </IconButton>
+                  <Tooltip title="Xóa thành viên">
+                    <span> {/* Bao bọc IconButton trong span để tooltip vẫn hiển thị khi nút bị vô hiệu hóa */}
+                      <IconButton
+                        edge="end"
+                        onClick={() => handleRemoveMember(member)}
+                        disabled={loading || 
+                          // Kiểm tra các trường hợp khác nhau của ID chủ sở hữu
+                          (project.ownerId?._id && member._id === project.ownerId._id) || 
+                          (typeof project.ownerId === 'string' && member._id === project.ownerId) ||
+                          (member.userId === project.ownerId)}
+                        color="error"
+                      >
+                        <RemoveIcon />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
                 </ListItemSecondaryAction>
               </ListItem>
             ))}

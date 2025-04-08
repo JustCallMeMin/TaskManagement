@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Grid, CircularProgress, Box, Button } from "@mui/material";
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import PendingInvitations from './PendingInvitations';
 
 // Material Dashboard 2 React components
 import MDBox from "../../../components/MDBox";

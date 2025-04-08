@@ -459,11 +459,11 @@ class AuthService {
 				throw new Error("Refresh token đã hết hạn.");
 			}
 
-			// Verify refresh token
-			const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-			console.log("Token decoded successfully");
+			// Refresh token là chuỗi hex, không phải JWT, nên không cần verify
+			const userId = storedToken.userId;
+			console.log("Using user ID from stored token:", userId);
 
-			const user = await UserRepository.findById(decoded.userId);
+			const user = await UserRepository.findById(userId);
 			console.log("User found:", !!user);
 
 			if (!user) {
@@ -501,12 +501,9 @@ class AuthService {
 				{ expiresIn: "15m" }
 			);
 
-			// Tạo refresh token mới
-			const newRefreshToken = jwt.sign(
-				{ userId: user._id },
-				process.env.JWT_REFRESH_SECRET,
-				{ expiresIn: "7d" }
-			);
+			// Tạo refresh token mới như chuỗi ngẫu nhiên hex (giống với createRefreshToken)
+			const newRefreshToken = crypto.randomBytes(40).toString('hex');
+			console.log("Created new refresh token as hex string");
 
 			// Cập nhật refresh token trong database
 			await RefreshTokenRepository.revoke(refreshToken);
@@ -757,6 +754,50 @@ class AuthService {
 
 		user.sessions = [];
 		await user.save();
+	}
+
+	static async createRefreshToken(userId, deviceInfo, ipAddress) {
+		try {
+			// Tạo refresh token
+			const refreshToken = crypto.randomBytes(40).toString('hex');
+			
+			// Lưu refresh token vào DB
+			await RefreshTokenRepository.create({
+				userId,
+				token: refreshToken,
+				expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 ngày
+				deviceInfo,
+				ipAddress
+			});
+			
+			return refreshToken;
+		} catch (error) {
+			throw new Error("Lỗi khi tạo refresh token: " + error.message);
+		}
+	}
+	
+	static async createTokens(userId, email, username, roles = ["User"], permissions = [], deviceInfo, ipAddress) {
+		try {
+			// Tạo access token
+			const accessToken = jwt.sign(
+				{
+					id: userId,
+					email,
+					username,
+					roles,
+					permissions
+				},
+				process.env.JWT_SECRET,
+				{ expiresIn: "15m" }
+			);
+			
+			// Tạo refresh token
+			const refreshToken = await this.createRefreshToken(userId, deviceInfo, ipAddress);
+			
+			return { accessToken, refreshToken };
+		} catch (error) {
+			throw new Error("Lỗi khi tạo tokens: " + error.message);
+		}
 	}
 }
 
