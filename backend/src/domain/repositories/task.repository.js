@@ -10,7 +10,12 @@ class TaskRepository {
     }
 
     static async findByUser(userId) {
-        return Task.find({ assignedUserId: userId });
+        return Task.find({
+            $or: [
+                { assignedUserId: userId },
+                { createdBy: userId }
+            ]
+        });
     }
 
     static async findPersonalTasks(userId) {

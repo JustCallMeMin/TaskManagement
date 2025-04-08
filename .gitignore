@@ -34,3 +34,6 @@ dist/
 build/
 
 .qodo
+
+# windsurf rules
+.windsurfrules

@@ -13,7 +13,7 @@ import { useTaskService } from './hooks/useTaskService';
 import { TASK_STATUS, TASK_PRIORITY } from './constants';
 
 // Services
-import taskService from './services/taskService';
+import taskService from './services/task.service';
 
 export {
   TaskList,

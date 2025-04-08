@@ -53,8 +53,40 @@ const ProjectList = () => {
     setLoading(true);
     try {
       const data = await ProjectService.getAllProjects();
-      setProjects(data);
-      setFilteredProjects(data);
+      console.log('Projects from API:', data);
+      
+      // Check for personal projects with improved type handling
+      const personalProjects = data.filter(p => {
+        console.log('Project isPersonal value:', p.name, p.isPersonal, typeof p.isPersonal);
+        
+        // Handle various formats of isPersonal (boolean, string, etc.)
+        return p.isPersonal === true || p.isPersonal === 'true' || 
+               (typeof p.isPersonal === 'string' && p.isPersonal.toLowerCase() === 'true');
+      });
+      console.log('Personal projects:', personalProjects);
+      
+      // Normalize the projects data to handle both formats (_id and projectId)
+      const normalizedProjects = data.map(project => {
+        // Convert isPersonal to boolean regardless of input format
+        const isPersonalValue = project.isPersonal === true || 
+                                project.isPersonal === 'true' || 
+                                (typeof project.isPersonal === 'string' && 
+                                 project.isPersonal.toLowerCase() === 'true');
+        
+        return {
+          ...project,
+          _id: project._id || project.projectId, // Use either _id or projectId
+          name: project.name || 'Untitled Project',
+          isPersonal: isPersonalValue,
+          description: project.description || '',
+          status: project.status || 'ACTIVE',
+          // Add default taskStats if missing
+          taskStats: project.taskStats || { total: 0, completed: 0 }
+        };
+      });
+      
+      setProjects(normalizedProjects);
+      setFilteredProjects(normalizedProjects);
       setError(null);
     } catch (err) {
       console.error('Error fetching projects:', err);

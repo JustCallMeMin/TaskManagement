@@ -38,6 +38,7 @@ const TaskForm = () => {
   });
 
   const [projects, setProjects] = useState([]);
+  const [personalProject, setPersonalProject] = useState(null);
 
   const [searchParams] = useSearchParams();
   const projectIdFromUrl = searchParams.get('projectId');
@@ -71,7 +72,18 @@ const TaskForm = () => {
     const fetchProjects = async () => {
       try {
         const projectsData = await ProjectService.getAllProjects();
-        setProjects(projectsData || []);
+        
+        // Separate personal project from organization projects
+        if (projectsData && projectsData.length > 0) {
+          const personal = projectsData.find(project => project.isPersonal);
+          const others = projectsData.filter(project => !project.isPersonal);
+          
+          if (personal) {
+            setPersonalProject(personal);
+          }
+          
+          setProjects(others);
+        }
       } catch (err) {
         console.error('Error fetching projects:', err);
       }
@@ -101,12 +113,45 @@ const TaskForm = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      if (isEditMode) {
-        await updateTask(id, formData);
-      } else {
-        await createTask(formData);
+      
+      // Prepare data for submission, ensuring all required fields are set
+      const taskData = {
+        ...formData,
+        // Ensure priority is set
+        priority: formData.priority || TASK_PRIORITY.MEDIUM,
+        // Ensure status is set
+        status: formData.status || TASK_STATUS.TODO,
+        // Set isPersonal flag based on projectId
+        isPersonal: !formData.projectId || formData.projectId === '',
+      };
+      
+      // Validate the due date if it's set
+      if (taskData.dueDate) {
+        const dueDate = new Date(taskData.dueDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to beginning of day for comparison
+        
+        if (dueDate <= today) {
+          setError("Due date must be in the future");
+          setLoading(false);
+          return;
+        }
       }
-      navigate('/tasks');
+      
+      console.log("Submitting task data:", taskData);
+      
+      if (isEditMode) {
+        await updateTask(id, taskData);
+      } else {
+        await createTask(taskData);
+      }
+      
+      // Check if we came from a specific project page
+      if (projectIdFromUrl) {
+        navigate(`/projects/${projectIdFromUrl}`);
+      } else {
+        navigate('/tasks');
+      }
     } catch (err) {
       console.error('Error saving task:', err);
       setError('Failed to save task: ' + (err.message || 'Unknown error'));
@@ -115,10 +160,19 @@ const TaskForm = () => {
     }
   };
 
+  // Back button click handler with context awareness
+  const handleBackClick = () => {
+    if (projectIdFromUrl) {
+      navigate(`/projects/${projectIdFromUrl}`);
+    } else {
+      navigate('/tasks');
+    }
+  };
+
   return (
     <Box>
       <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
-        <IconButton onClick={() => navigate('/tasks')} sx={{ mr: 1 }}>
+        <IconButton onClick={handleBackClick} sx={{ mr: 1 }}>
           <BackIcon />
         </IconButton>
         <Typography variant="h5">
@@ -169,16 +223,24 @@ const TaskForm = () => {
                   onChange={handleChange}
                   label="Project"
                 >
-                  <MenuItem value="">
-                    <em>Personal Task (No Project)</em>
-                  </MenuItem>
-                  {projects.length > 0 ? (
-                    projects.map((project) => (
+                  {personalProject && (
+                    <MenuItem value={personalProject._id}>
+                      Personal Task ({personalProject.name})
+                    </MenuItem>
+                  )}
+                  
+                  {projects.length > 0 && [
+                    <MenuItem key="divider" disabled>
+                      --- Organization Projects ---
+                    </MenuItem>,
+                    ...projects.map((project) => (
                       <MenuItem key={project._id} value={project._id}>
                         {project.name}
                       </MenuItem>
                     ))
-                  ) : (
+                  ]}
+                  
+                  {!personalProject && projects.length === 0 && (
                     <MenuItem disabled sx={{ color: 'text.secondary' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <em>No projects available - </em>
@@ -252,7 +314,7 @@ const TaskForm = () => {
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
                 <Button
                   type="button"
-                  onClick={() => navigate('/tasks')}
+                  onClick={handleBackClick}
                   variant="outlined"
                 >
                   Cancel
@@ -267,8 +329,9 @@ const TaskForm = () => {
                     <>
                       <CircularProgress size={24} sx={{ mr: 1 }} /> 
                       {isEditMode ? 'Updating...' : 'Creating...'}
-                    </> : 
-                    (isEditMode ? 'Update Task' : 'Create Task')
+                    </>
+                    : 
+                    isEditMode ? 'Update Task' : 'Create Task'
                   }
                 </Button>
               </Box>

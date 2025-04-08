@@ -5,16 +5,26 @@ import { toast } from 'react-toastify';
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   }
 });
 
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
+    // Add cache busting for GET requests
+    if (config.method === 'get') {
+      config.params = {
+        ...config.params,
+        _t: Date.now()
+      };
+    }
+
     const token = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN);
     if (token) {
-      // Ensure token format is valid
       try {
         // Make sure token is a string and not malformed
         if (typeof token === 'string' && token.trim().length > 0) {

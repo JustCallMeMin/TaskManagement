@@ -5,76 +5,6 @@ import { PROJECT_STATUS } from "../constants/project.constants";
  * Service for handling project-related operations
  */
 class ProjectService {
-  // Mock data for development
-  mockProjects = [
-    {
-      _id: 'p1',
-      name: 'Dự án Marketing 2023',
-      description: 'Chiến dịch marketing cho sản phẩm mới Q4/2023',
-      startDate: new Date(2023, 9, 1).toISOString(),
-      endDate: new Date(2023, 11, 31).toISOString(),
-      status: PROJECT_STATUS.IN_PROGRESS,
-      ownerId: 'u1',
-      memberCount: 5,
-      taskStats: {
-        total: 12,
-        completed: 5
-      }
-    },
-    {
-      _id: 'p2',
-      name: 'Phát triển website',
-      description: 'Phát triển website cho khách hàng ABC Corp',
-      startDate: new Date(2023, 8, 15).toISOString(),
-      endDate: new Date(2024, 1, 28).toISOString(),
-      status: PROJECT_STATUS.IN_PROGRESS,
-      ownerId: 'u1',
-      memberCount: 3,
-      taskStats: {
-        total: 24,
-        completed: 8
-      }
-    },
-    {
-      _id: 'p3',
-      name: 'Tài liệu kỹ thuật',
-      description: 'Viết tài liệu kỹ thuật và hướng dẫn sử dụng',
-      startDate: new Date(2023, 10, 1).toISOString(),
-      endDate: new Date(2023, 11, 15).toISOString(),
-      status: PROJECT_STATUS.NOT_STARTED,
-      ownerId: 'u1',
-      memberCount: 2,
-      taskStats: {
-        total: 5,
-        completed: 0
-      }
-    }
-  ];
-
-  // Mock users for project members
-  mockUsers = [
-    {
-      _id: 'u1',
-      email: 'admin@example.com',
-      fullName: 'Admin User'
-    },
-    {
-      _id: 'u2',
-      email: 'user1@example.com',
-      fullName: 'John Doe'
-    },
-    {
-      _id: 'u3',
-      email: 'user2@example.com',
-      fullName: 'Jane Smith'
-    },
-    {
-      _id: 'u4',
-      email: 'user3@example.com',
-      fullName: 'Bob Johnson'
-    }
-  ];
-
   /**
    * Get all projects for the current user
    * @returns {Promise} Promise containing the list of projects
@@ -83,11 +13,119 @@ class ProjectService {
     try {
       // Always try the real API call first
       const response = await api.get('/projects');
-      return response.data.data || [];
+      console.log('Complete API response:', {
+        status: response.status,
+        data: response.data
+      });
+      
+      // The response data is the array directly
+      const projects = Array.isArray(response.data) ? response.data : [];
+      console.log('Raw projects array:', projects);
+      
+      if (projects.length === 0) {
+        console.log('No projects found in response');
+        return [];
+      }
+
+      // Map the projects to match frontend format
+      const mappedProjects = projects.map(project => {
+        console.log('Processing project:', project);
+        return {
+          _id: project.projectId || project._id,
+          name: project.name || 'Untitled Project',
+          description: project.description || '',
+          status: project.status || PROJECT_STATUS.ACTIVE,
+          isPersonal: Boolean(project.isPersonal),
+          owner: project.owner || null,
+          members: project.members || [],
+          taskStats: project.taskStats || { total: 0, completed: 0 }
+        };
+      });
+
+      console.log('Final mapped projects:', mappedProjects);
+      return mappedProjects;
     } catch (error) {
-      console.error('Error getting projects:', error);
+      console.error('Error getting projects:', error.response || error);
       // Return empty array if API call fails
       return [];
+    }
+  }
+
+  /**
+   * Create a new project
+   * @param {Object} projectData Project data to create
+   * @returns {Promise} Promise containing the created project
+   */
+  async createProject(projectData) {
+    try {
+      const response = await api.post('/projects', projectData);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating project:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing project
+   * @param {string} projectId Project ID to update
+   * @param {Object} projectData Updated project data
+   * @returns {Promise} Promise containing the updated project
+   */
+  async updateProject(projectId, projectData) {
+    try {
+      const response = await api.put(`/projects/${projectId}`, projectData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating project:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete multiple projects
+   * @param {Array<string>} projectIds Array of project IDs to delete
+   * @returns {Promise} Promise containing the deletion result
+   */
+  async deleteProjects(projectIds) {
+    try {
+      const response = await api.delete('/projects', { data: { projectIds } });
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting projects:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add members to a project
+   * @param {string} projectId Project ID
+   * @param {Array<string>} memberIds Array of user IDs to add
+   * @returns {Promise} Promise containing the updated project
+   */
+  async addMembers(projectId, memberIds) {
+    try {
+      const response = await api.post(`/projects/${projectId}/members`, { members: memberIds });
+      return response.data;
+    } catch (error) {
+      console.error('Error adding members:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove members from a project
+   * @param {string} projectId Project ID
+   * @param {Array<string>} userIds Array of user IDs to remove
+   * @returns {Promise} Promise containing the updated project
+   */
+  async removeMembers(projectId, userIds) {
+    try {
+      const response = await api.delete(`/projects/${projectId}/members`, { data: { userIds } });
+      return response.data;
+    } catch (error) {
+      console.error('Error removing members:', error);
+      throw error;
     }
   }
 
@@ -98,58 +136,37 @@ class ProjectService {
    */
   async getProjectById(projectId) {
     try {
+      console.log(`Fetching project details for ID: ${projectId}`);
       const response = await api.get(`/projects/${projectId}`);
-      return response.data.data;
+      console.log('Project details response:', response);
+      
+      // The API returns { success: true, data: {...}, message: string }
+      const projectData = response.data?.data || response.data;
+      
+      if (!projectData) {
+        console.error('Invalid project data format:', response.data);
+        throw new Error('Invalid project data received');
+      }
+      
+      // Normalize the project data to ensure consistent structure
+      const normalizedProject = {
+        _id: projectData.projectId || projectData._id,
+        projectId: projectData.projectId || projectData._id,
+        name: projectData.name || 'Untitled Project',
+        description: projectData.description || '',
+        status: projectData.status || 'ACTIVE',
+        isPersonal: Boolean(projectData.isPersonal),
+        startDate: projectData.startDate,
+        endDate: projectData.endDate,
+        owner: projectData.owner || null,
+        members: projectData.members || [],
+        taskStats: projectData.taskStats || { total: 0, completed: 0 }
+      };
+      
+      console.log('Normalized project data:', normalizedProject);
+      return normalizedProject;
     } catch (error) {
       console.error('Error getting project details:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Create a new organization project
-   * @param {Object} projectData Project data
-   * @returns {Promise} Promise containing the created project
-   */
-  async createProject(projectData) {
-    try {
-      const response = await api.post('/projects/organization', projectData);
-      return response.data.data;
-    } catch (error) {
-      console.error('Error creating project:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update an existing project
-   * @param {string} projectId Project ID
-   * @param {Object} projectData Updated project data
-   * @returns {Promise} Promise containing the updated project
-   */
-  async updateProject(projectId, projectData) {
-    try {
-      const response = await api.put(`/projects/${projectId}`, projectData);
-      return response.data.data;
-    } catch (error) {
-      console.error('Error updating project:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete one or more projects
-   * @param {Array} projectIds Array of project IDs to delete
-   * @returns {Promise} Promise containing the result of the deletion
-   */
-  async deleteProjects(projectIds) {
-    try {
-      const response = await api.delete(`/projects/${projectIds[0]}`, {
-        data: { projectIds }
-      });
-      return response.data.data;
-    } catch (error) {
-      console.error('Error deleting projects:', error);
       throw error;
     }
   }
@@ -161,47 +178,31 @@ class ProjectService {
    */
   async getProjectMembers(projectId) {
     try {
+      console.log(`Fetching members for project ID: ${projectId}`);
       const response = await api.get(`/projects/${projectId}/members`);
-      return response.data.data || [];
+      console.log('Project members response:', response);
+      
+      // The API returns { success: true, data: [...], message: string }
+      const membersData = response.data?.data || response.data || [];
+      
+      // Normalize the members data
+      const normalizedMembers = Array.isArray(membersData) 
+        ? membersData.map(member => ({
+            userId: member.userId,
+            fullName: member.fullName || 'Unknown User',
+            email: member.email || '',
+            role: member.role || 'MEMBER'
+          }))
+        : [];
+      
+      console.log('Normalized members data:', normalizedMembers);
+      return normalizedMembers;
     } catch (error) {
       console.error('Error getting project members:', error);
+      // Return empty array if API call fails
       return [];
-    }
-  }
-
-  /**
-   * Add members to a project
-   * @param {string} projectId Project ID
-   * @param {Array} members Array of user IDs to add to the project
-   * @returns {Promise} Promise containing the result of the operation
-   */
-  async addMembers(projectId, members) {
-    try {
-      const response = await api.post(`/projects/${projectId}/members`, { members });
-      return response.data.data;
-    } catch (error) {
-      console.error('Error adding project members:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove members from a project
-   * @param {string} projectId Project ID
-   * @param {Array} userIds Array of user IDs to remove from the project
-   * @returns {Promise} Promise containing the result of the operation
-   */
-  async removeMembers(projectId, userIds) {
-    try {
-      const response = await api.delete(`/projects/${projectId}/members`, {
-        data: { userIds }
-      });
-      return response.data.data;
-    } catch (error) {
-      console.error('Error removing project members:', error);
-      throw error;
     }
   }
 }
 
-export default new ProjectService(); 
+export default new ProjectService();

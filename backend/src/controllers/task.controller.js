@@ -5,10 +5,13 @@ class TaskController {
 		try {
 			const task = await TaskService.createTask(req.user.id, {
 				...req.body,
-				isPersonal: true,
-				projectId: null,
+				isPersonal: true
 			});
-			res.status(201).json(task);
+			res.status(201).json({
+				success: true,
+				data: task,
+				message: "Task cá nhân đã được tạo thành công."
+			});
 		} catch (error) {
 			res.status(400).json({ error: error.message });
 		}
@@ -24,7 +27,11 @@ class TaskController {
 				...req.body,
 				isPersonal: false,
 			});
-			res.status(201).json(task);
+			res.status(201).json({
+				success: true,
+				data: task,
+				message: "Task dự án đã được tạo thành công."
+			});
 		} catch (error) {
 			res.status(400).json({ error: error.message });
 		}
@@ -62,7 +69,11 @@ class TaskController {
 	static async getAllTasks(req, res) {
 		try {
 			const tasks = await TaskService.getAllTasks(req.user.id);
-			return res.status(200).json(tasks || []);
+			return res.status(200).json({
+				success: true,
+				data: tasks || [],
+				message: "Danh sách công việc của bạn."
+			});
 		} catch (error) {
 			return res.status(400).json({ error: error.message });
 		}
@@ -72,7 +83,11 @@ class TaskController {
 		try {
 			const { taskId } = req.params;
 			const task = await TaskService.getTaskById(taskId, req.user.id);
-			res.status(200).json(task);
+			res.status(200).json({
+				success: true,
+				data: task,
+				message: "Chi tiết công việc."
+			});
 		} catch (error) {
 			res.status(400).json({ error: error.message });
 		}

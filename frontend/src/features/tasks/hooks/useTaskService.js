@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import taskService from '../services/taskService';
+import taskService from '../services/task.service';
 import { toast } from 'react-toastify';
 
 export const useTaskService = () => {
@@ -46,19 +46,13 @@ export const useTaskService = () => {
   const createTask = async (taskData) => {
     try {
       setLoading(true);
-      
-      if (taskData.projectId) {
-        // Create project task
-        const newTask = await taskService.createProjectTask(taskData);
-        return newTask;
-      } else {
-        // Create personal task
-        const newTask = await taskService.createPersonalTask(taskData);
-        return newTask;
-      }
+      const newTask = await taskService.createTask(taskData);
+      toast.success('Task created successfully');
+      return newTask;
     } catch (error) {
       setError(error.message);
       console.error("Error creating task:", error);
+      toast.error(error.message || 'Failed to create task');
       throw error;
     } finally {
       setLoading(false);

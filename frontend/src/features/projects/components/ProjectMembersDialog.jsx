@@ -40,17 +40,35 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
 
   useEffect(() => {
     if (open && project) {
-      fetchMembers();
-      fetchAvailableUsers();
+      // Check if project has a valid ID before fetching
+      if (project._id || project.projectId) {
+        fetchMembers();
+        fetchAvailableUsers();
+      } else {
+        console.warn('Project object has no valid ID', project);
+        setError('Unable to manage members: Project information is incomplete.');
+      }
     }
   }, [open, project]);
 
   const fetchMembers = async () => {
-    if (!project) return;
+    if (!project) {
+      console.warn('No project provided to ProjectMembersDialog');
+      return;
+    }
+    
+    const projectId = project._id || project.projectId;
+    if (!projectId) {
+      console.warn('Project has no ID', project);
+      setError('Unable to load members: Project ID is missing.');
+      return;
+    }
+    
+    console.log(`Fetching members for project: ${projectId}`);
     
     setMembersLoading(true);
     try {
-      const data = await ProjectService.getProjectMembers(project._id);
+      const data = await ProjectService.getProjectMembers(projectId);
       setMembers(data || []);
       setError('');
     } catch (err) {
@@ -63,10 +81,22 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
 
   const fetchAvailableUsers = async () => {
     try {
+      setError(''); // Clear any previous errors
       const data = await userService.getAllUsers();
-      setAvailableUsers(data || []);
+      if (Array.isArray(data)) {
+        setAvailableUsers(data);
+        if (data.length === 0) {
+          setError('No users available to add to this project. You may not have permission to view all users.');
+        }
+      } else {
+        console.warn('User data is not an array:', data);
+        setAvailableUsers([]);
+        setError('Unable to load available users. You may not have sufficient permissions.');
+      }
     } catch (err) {
       console.error('Error fetching users:', err);
+      setError('Unable to load available users. You may not have sufficient permissions.');
+      setAvailableUsers([]);
     }
   };
 
@@ -75,10 +105,17 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
       return;
     }
     
+    if (!project || !project._id) {
+      setError('Invalid project data');
+      return;
+    }
+    
+    const projectId = project._id || project.projectId;
+    
     setLoading(true);
     try {
-      await ProjectService.removeMembers(project._id, [userId]);
-      setMembers(members.filter(member => member._id !== userId));
+      await ProjectService.removeMembers(projectId, [userId]);
+      setMembers(members.filter(member => member.userId !== userId));
       setError('');
       onChange(); // Notify parent component of the change
     } catch (err) {
@@ -118,19 +155,34 @@ const ProjectMembersDialog = ({ open, onClose, onChange, project }) => {
   );
 
   return (
-    <Dialog
-      open={open}
-      onClose={loading ? undefined : onClose}
+    <Dialog 
+      open={open} 
+      onClose={onClose}
       fullWidth
-      maxWidth="sm"
+      maxWidth="md"
     >
       <DialogTitle>
-        Manage Project Members - {project?.name}
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Box>
+            <Typography variant="h6">
+              Manage Project Members
+            </Typography>
+            {project && <Typography variant="body2" color="textSecondary">
+              {project.name}
+            </Typography>}
+          </Box>
+          <IconButton onClick={onClose} size="small">
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </DialogTitle>
-      
       <DialogContent>
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert 
+            severity={error.includes('permission') ? "info" : "error"} 
+            sx={{ mb: 2 }}
+            onClose={() => setError('')}
+          >
             {error}
           </Alert>
         )}

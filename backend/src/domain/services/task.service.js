@@ -5,6 +5,14 @@ const UserRepository = require("../repositories/user.repository");
 const { TASK_STATUS, PROJECT_STATUS } = require("../../utils/enums");
 const TaskDTO = require("../dto/task.dto");
 
+/**
+ * TaskService - Quản lý nghiệp vụ công việc
+ * 
+ * Theo mô hình Jira/Trello:
+ * - Mỗi User có một Personal Project riêng
+ * - Tất cả Task cá nhân đều thuộc Personal Project này
+ * - Task dự án thuộc về các Organization Project do Manager/Admin tạo
+ */
 class TaskService {
 	// 🔹 Tạo Task mới
 	static async createTask(userId, taskData) {
@@ -16,13 +24,20 @@ class TaskService {
 
 		// Handle personal tasks (tasks without a project)
 		if (isPersonal || !projectId) {
-			// For personal tasks, create task directly without project
+			// Theo mô hình Jira/Trello: Mỗi User có một Personal Project
+			// Tự động tạo hoặc lấy Personal Project nếu chưa có
+			const personalProject = await ProjectService.getOrCreatePersonalProject(userId);
+			if (!personalProject) {
+				throw new Error("Không thể tạo hoặc tìm project cá nhân.");
+			}
+			
+			// Create task with the personal project ID
 			const task = await TaskRepository.create({
 				title,
 				description,
 				dueDate,
 				priority,
-				projectId: null, // No project for personal tasks
+				projectId: personalProject._id, // Use the personal project ID
 				assignedUserId: assignedUserId || userId, // Default to creator
 				status: TASK_STATUS.TODO,
 				isPersonal: true, // Mark explicitly as personal
@@ -32,7 +47,7 @@ class TaskService {
 			return new TaskDTO(task);
 		}
 
-		// From here, handle project-based tasks
+		// From here, handle project-based tasks (Organization Projects)
 		let project;
 
 		// Kiểm tra project tồn tại
@@ -137,7 +152,8 @@ class TaskService {
 	static async getAllTasks(userId) {
 		try {
 			const tasks = await TaskRepository.findByUser(userId);
-			return tasks || []; // Ensure we always return an array
+			// Map each task to a DTO to ensure consistent formatting
+			return tasks.map(task => new TaskDTO(task)) || []; // Ensure we always return an array
 		} catch (error) {
 			console.error("Error fetching tasks:", error);
 			return []; // Return empty array instead of throwing error

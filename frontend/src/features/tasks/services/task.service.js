@@ -12,7 +12,15 @@ class TaskService {
   async getAllTasks() {
     try {
       const response = await api.get("/tasks");
-      return response.data.data || [];
+      // Check if the response has a data property (new format) or is an array (old format)
+      const tasks = response.data && response.data.data 
+        ? response.data.data  // New format: { success, data, message }
+        : Array.isArray(response.data) 
+          ? response.data     // Old format: direct array
+          : [];               // Fallback to empty array
+          
+      console.log('Tasks received from API:', tasks);
+      return tasks;
     } catch (error) {
       console.error('Error getting tasks:', error);
       // Return empty array if API call fails
@@ -28,40 +36,57 @@ class TaskService {
   async getTaskById(taskId) {
     try {
       const response = await api.get(`/tasks/${taskId}`);
-      return response.data.data;
+      // Handle both the new format (with data property) and the old format
+      const task = response.data && response.data.data 
+        ? response.data.data  // New format: { success, data, message }
+        : response.data;      // Old format: direct object
+        
+      console.log('Task details received from API:', task);
+      return task;
     } catch (error) {
       console.error('Error getting task details:', error);
-      throw new Error(error.response?.data?.message || "Không thể lấy thông tin công việc");
+      throw new Error(error.response?.data?.error || error.response?.data?.message || "Không thể lấy thông tin công việc");
     }
   }
 
   /**
-   * Tạo công việc cá nhân mới
+   * Tạo task mới (cá nhân hoặc dự án)
    * @param {Object} taskData Dữ liệu của task mới
    * @returns {Promise} Promise chứa thông tin của task đã tạo
    */
-  async createPersonalTask(taskData) {
+  async createTask(taskData) {
     try {
-      const response = await api.post("/tasks/personal", taskData);
-      return response.data.data;
+      // Determine if this is a personal task or project task
+      const isPersonal = !taskData.projectId;
+      
+      // Use the correct endpoint based on task type
+      const endpoint = isPersonal ? "/tasks/personal" : "/tasks/project";
+      
+      // Ensure required fields are set
+      const data = {
+        ...taskData,
+        isPersonal,
+        priority: taskData.priority || TASK_PRIORITY.MEDIUM,
+        status: taskData.status || TASK_STATUS.TODO
+      };
+      
+      // Format the date properly if it exists
+      if (data.dueDate) {
+        // Ensure dueDate is a valid ISO date string
+        const dueDate = new Date(data.dueDate);
+        if (!isNaN(dueDate.getTime())) {
+          data.dueDate = dueDate.toISOString();
+        }
+      }
+      
+      console.log("Creating task with data:", data);
+      
+      const response = await api.post(endpoint, data);
+      return response;
     } catch (error) {
-      console.error('Error creating personal task:', error);
-      throw new Error(error.response?.data?.message || "Không thể tạo công việc cá nhân");
-    }
-  }
-
-  /**
-   * Tạo công việc thuộc dự án
-   * @param {Object} taskData Dữ liệu của task mới
-   * @returns {Promise} Promise chứa thông tin của task đã tạo
-   */
-  async createProjectTask(taskData) {
-    try {
-      const response = await api.post("/tasks/project", taskData);
-      return response.data.data;
-    } catch (error) {
-      console.error('Error creating project task:', error);
-      throw new Error(error.response?.data?.message || "Không thể tạo công việc cho dự án");
+      console.error('Error creating task:', error);
+      console.error('Error response:', error.response?.data);
+      throw new Error(error.response?.data?.error || error.response?.data?.message || "Không thể tạo công việc");
     }
   }
 
@@ -74,7 +99,7 @@ class TaskService {
   async updateTask(taskId, taskData) {
     try {
       const response = await api.put(`/tasks/${taskId}`, taskData);
-      return response.data.data;
+      return response;
     } catch (error) {
       console.error('Error updating task:', error);
       throw new Error(error.response?.data?.message || "Không thể cập nhật công việc");
@@ -90,7 +115,7 @@ class TaskService {
   async updateTaskStatus(taskId, status) {
     try {
       const response = await api.patch(`/tasks/${taskId}/status`, { status });
-      return response.data.data;
+      return response;
     } catch (error) {
       console.error('Error updating task status:', error);
       throw new Error(error.response?.data?.message || "Không thể cập nhật trạng thái công việc");
@@ -106,7 +131,7 @@ class TaskService {
   async assignTask(taskId, userId) {
     try {
       const response = await api.patch(`/tasks/${taskId}/assign`, { assignedUserId: userId });
-      return response.data.data;
+      return response;
     } catch (error) {
       throw new Error(error.response?.data?.message || "Không thể gán công việc cho người dùng");
     }
@@ -120,7 +145,7 @@ class TaskService {
   async deleteTask(taskId) {
     try {
       const response = await api.delete(`/tasks/${taskId}`);
-      return response.data.data;
+      return response;
     } catch (error) {
       console.error('Error deleting task:', error);
       throw new Error(error.response?.data?.message || "Không thể xóa công việc");
@@ -131,7 +156,7 @@ class TaskService {
   async getTasksByProject(projectId) {
     try {
       const response = await api.get(`/tasks?projectId=${projectId}`);
-      return response.data.data || [];
+      return response.data || [];
     } catch (error) {
       console.error('Error getting tasks by project:', error);
       return [];

@@ -16,10 +16,10 @@ import MDTypography from "../../MDTypography";
 
 function DataTable({
   table,
-  isSorted,
-  noEndBorder,
-  entriesPerPage,
-  showTotalEntries,
+  isSorted = true,
+  noEndBorder = false,
+  entriesPerPage = { defaultValue: 10, entries: [5, 10, 15, 20, 25] },
+  showTotalEntries = true,
 }) {
   const { columns, rows } = table;
   
@@ -87,14 +87,6 @@ function DataTable({
   );
 }
 
-// Setting default values for the props of DataTable
-DataTable.defaultProps = {
-  entriesPerPage: { defaultValue: 10, entries: [5, 10, 15, 20, 25] },
-  isSorted: true,
-  noEndBorder: false,
-  showTotalEntries: true,
-};
-
 // Typechecking props for the DataTable
 DataTable.propTypes = {
   table: PropTypes.shape({
@@ -107,16 +99,13 @@ DataTable.propTypes = {
     ).isRequired,
     rows: PropTypes.arrayOf(PropTypes.object).isRequired,
   }).isRequired,
-  entriesPerPage: PropTypes.oneOfType([
-    PropTypes.shape({
-      defaultValue: PropTypes.number,
-      entries: PropTypes.arrayOf(PropTypes.number),
-    }),
-    PropTypes.bool,
-  ]),
+  entriesPerPage: PropTypes.shape({
+    defaultValue: PropTypes.number,
+    entries: PropTypes.arrayOf(PropTypes.number),
+  }),
   isSorted: PropTypes.bool,
   noEndBorder: PropTypes.bool,
   showTotalEntries: PropTypes.bool,
 };
 
-export default DataTable; 
+export default DataTable;

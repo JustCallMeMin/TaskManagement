@@ -79,6 +79,12 @@ module.exports = {
 	}),
 
 	formatProjectsResponse: (projects) => {
+		console.log("🔍 Raw projects:", projects.map(p => ({
+			id: p._id, 
+			isPersonal: p.isPersonal,
+			name: p.name
+		})));
+	
 		return projects.map((project) => ({
 			projectId: project._id, // Cập nhật theo MongoDB
 			name: project.name,

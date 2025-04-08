@@ -78,8 +78,37 @@ class ProjectController {
     // 6️⃣ Lấy danh sách dự án của User
     static async getAllProjects(req, res) {
         try {
+            // Set cache control headers
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+
+            // Make sure the user has a personal project
+            const personalProject = await ProjectService.getOrCreatePersonalProject(req.user.id);
+            console.log("🔍 Personal project:", personalProject);
+            
+            // Now get all projects including the personal one
             const projects = await ProjectService.getAllProjects(req.user.id);
-            return successResponse(res, formatProjectsResponse(projects), "Danh sách dự án của bạn.");
+            console.log("🔍 All projects count:", projects.length);
+            
+            // Log if personal project is in the list
+            const personalProjectInList = projects.some(p => p.isPersonal === true);
+            console.log("🔍 Personal project in list:", personalProjectInList);
+            
+            // Log raw projects for debugging
+            console.log("🔍 Raw projects:", projects.map(p => ({
+                id: p._id, 
+                isPersonal: p.isPersonal,
+                name: p.name,
+                status: p.status
+            })));
+            
+            // Format and send response
+            const formattedProjects = formatProjectsResponse(projects);
+            console.log("🔍 Formatted projects count:", formattedProjects.length);
+            console.log("🔍 Formatted projects:", formattedProjects);
+            
+            return successResponse(res, formattedProjects, "Danh sách dự án của bạn.");
         } catch (error) {
             console.error("❌ Lỗi khi lấy danh sách dự án:", error);
             return errorResponse(res, error.message, error.status || 400);
@@ -89,12 +118,28 @@ class ProjectController {
     // 7️⃣ Lấy thông tin dự án theo ID
     static async getProjectById(req, res) {
         try {
+            // Set cache control headers
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+            
             const { projectId } = req.params;
+            
+            if (!projectId) {
+                return errorResponse(res, "Project ID is required", 400);
+            }
+            
+            console.log("🔍 Getting project by ID:", projectId);
+            
             const project = await ProjectService.getProjectById(projectId);
             if (!project) {
                 return errorResponse(res, "Dự án không tồn tại.", 404);
             }
-            return successResponse(res, formatProjectResponse(project), "Lấy thông tin dự án thành công.");
+            
+            const formattedProject = formatProjectResponse(project);
+            console.log("🔍 Formatted project:", formattedProject);
+            
+            return successResponse(res, formattedProject, "Lấy thông tin dự án thành công.");
         } catch (error) {
             console.error("❌ Lỗi khi lấy thông tin dự án:", error);
             return errorResponse(res, error.message, error.status || 400);
@@ -104,8 +149,23 @@ class ProjectController {
     // 8️⃣ Lấy danh sách thành viên của dự án
     static async getProjectMembers(req, res) {
         try {
+            // Set cache control headers
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+            
             const { projectId } = req.params;
+            
+            if (!projectId) {
+                return errorResponse(res, "Project ID is required", 400);
+            }
+            
+            console.log("🔍 Getting members for project ID:", projectId);
+            
             const members = await ProjectService.getProjectMembers(projectId);
+            
+            console.log("🔍 Found members:", members.length);
+            
             return successResponse(res, members, "Danh sách thành viên dự án.");
         } catch (error) {
             console.error("❌ Lỗi khi lấy danh sách thành viên:", error);

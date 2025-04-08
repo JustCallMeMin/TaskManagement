@@ -60,22 +60,54 @@ const ProjectDetail = () => {
   const fetchProject = async () => {
     setLoading(true);
     try {
-      const projectData = await ProjectService.getProjectById(projectId);
-      setProject(projectData);
+      const response = await ProjectService.getProjectById(projectId);
+      console.log('Project detail response:', response);
+      
+      // Handle both response formats (direct or wrapped in data property)
+      const projectData = response.data || response;
+      
+      if (!projectData) {
+        throw new Error('Invalid project data received');
+      }
+      
+      // Normalize the project data
+      const normalizedProject = {
+        _id: projectData.projectId || projectData._id,
+        name: projectData.name || 'Untitled Project',
+        description: projectData.description || '',
+        status: projectData.status || 'ACTIVE',
+        isPersonal: Boolean(projectData.isPersonal),
+        startDate: projectData.startDate,
+        endDate: projectData.endDate,
+        owner: projectData.owner || null,
+        members: projectData.members || [],
+        taskStats: projectData.taskStats || { total: 0, completed: 0 }
+      };
+      
+      console.log('Normalized project data:', normalizedProject);
+      setProject(normalizedProject);
       
       // Fetch members and tasks once we have project data
       Promise.all([
         ProjectService.getProjectMembers(projectId),
         TaskService.getTasksByProject(projectId)
       ]).then(([membersData, tasksData]) => {
-        setMembers(membersData || []);
-        setTasks(tasksData || []);
+        const normalizedMembers = membersData?.data || membersData || [];
+        const normalizedTasks = tasksData?.data || tasksData || [];
+        
+        console.log('Project members:', normalizedMembers);
+        console.log('Project tasks:', normalizedTasks);
+        
+        setMembers(normalizedMembers);
+        setTasks(normalizedTasks);
+      }).catch(err => {
+        console.error('Error fetching project related data:', err);
       });
       
       setError(null);
     } catch (err) {
       console.error('Error fetching project details:', err);
-      setError('Failed to load project details');
+      setError('Failed to load project details. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -303,46 +335,36 @@ const ProjectDetail = () => {
             </Tabs>
           </Paper>
           
-          {tabValue === 0 && (
-            <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">
-                  Project Tasks
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<AddIcon />}
-                  onClick={handleCreateTask}
-                >
-                  Add Task
-                </Button>
-              </Box>
-              
-              {tasks.length === 0 ? (
-                <Paper sx={{ p: 3, textAlign: 'center' }}>
-                  <Typography variant="body1" color="text.secondary" paragraph>
-                    No tasks in this project yet
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<AddIcon />}
-                    onClick={handleCreateTask}
-                  >
-                    Create First Task
-                  </Button>
-                </Paper>
-              ) : (
-                <TaskList 
-                  tasks={tasks} 
-                  onTaskUpdated={fetchProject}
-                  projectId={projectId}
-                  showFilters={false}
-                />
-              )}
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">
+                Project Tasks
+              </Typography>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={handleCreateTask}
+              >
+                Add Task
+              </Button>
             </Box>
-          )}
+            
+            {tasks.length === 0 ? (
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body1" color="text.secondary" paragraph>
+                  No tasks in this project yet
+                </Typography>
+              </Paper>
+            ) : (
+              <TaskList 
+                tasks={tasks} 
+                onTaskUpdated={fetchProject}
+                projectId={projectId}
+                showFilters={false}
+              />
+            )}
+          </Box>
           
           {tabValue === 1 && (
             <Paper sx={{ p: 3, textAlign: 'center' }}>
@@ -368,7 +390,11 @@ const ProjectDetail = () => {
           open={openMembersDialog}
           onClose={() => setOpenMembersDialog(false)}
           onChange={handleMembersChange}
-          project={project}
+          project={{
+            ...project,
+            _id: projectId,  
+            projectId: projectId  
+          }}
         />
       )}
     </Box>

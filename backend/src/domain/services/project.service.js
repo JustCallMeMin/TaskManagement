@@ -6,6 +6,14 @@ const { PROJECT_STATUS, TASK_STATUS } = require("../../utils/enums");
 const ProjectDTO = require("../dto/project.dto");
 const { PROJECT_ROLE } = require("../../utils/enums");
 
+/**
+ * ProjectService - Quản lý nghiệp vụ dự án
+ * 
+ * Theo mô hình Jira/Trello:
+ * 1. Mỗi User có một Personal Project riêng (tự động tạo)
+ * 2. Chỉ Admin/Manager mới có quyền tạo Organization Project
+ * 3. User chỉ có thể xem và tạo task trong Project mà họ là thành viên
+ */
 class ProjectService {
 	// 1️⃣ Tạo Personal Project
 	static async createPersonalProject(userId) {
@@ -24,7 +32,7 @@ class ProjectService {
 			description: "Your personal task list",
 			ownerId: userId,
 			isPersonal: true,
-			status: PROJECT_STATUS.IN_PROGRESS,
+			status: PROJECT_STATUS.ACTIVE,
 			startDate: startDate,
 			endDate: endDate,
 		});
@@ -32,7 +40,16 @@ class ProjectService {
 		return newProject;
 	}
 
+	// 1️⃣.1️⃣ Hàm tiện ích - Lấy hoặc tạo Personal Project (Để API rõ ràng hơn)
+	static async getOrCreatePersonalProject(userId) {
+		return this.createPersonalProject(userId); // Reuse the existing logic
+	}
+
 	// 2️⃣ Tạo Organization Project
+	/**
+	 * Tạo dự án cho tổ chức/nhóm (chỉ Manager/Admin)
+	 * Tuân theo mô hình giống Jira/Trello, chỉ người có quyền mới tạo được project cho nhóm
+	 */
 	static async createOrganizationProject(userId, projectData) {
 		const user = await UserRepository.findById(userId);
 		if (!user) throw new Error("Người dùng không tồn tại.");
@@ -41,7 +58,7 @@ class ProjectService {
 			...projectData,
 			ownerId: userId,
 			isPersonal: false,
-			status: PROJECT_STATUS.PENDING,
+			status: PROJECT_STATUS.ACTIVE,
 		});
 
 		// Tự động thêm người tạo vào project với vai trò Owner
@@ -142,6 +159,36 @@ class ProjectService {
 		const project = await ProjectRepository.findById(projectId);
 		if (!project) throw new Error("Dự án không tồn tại.");
 		return new ProjectDTO(project);
+	}
+
+	// 9️⃣ Lấy danh sách thành viên của dự án
+	static async getProjectMembers(projectId) {
+		try {
+			console.log("🔍 Getting members for project ID:", projectId);
+			
+			// Verify project exists
+			const project = await ProjectRepository.findById(projectId);
+			if (!project) {
+				throw new Error("Dự án không tồn tại.");
+			}
+			
+			// Get members from project
+			const members = project.members || [];
+			
+			// Format member data
+			const formattedMembers = members.map(member => ({
+				userId: member.userId?._id,
+				fullName: member.userId?.fullName || "Không xác định",
+				email: member.userId?.email || "Không xác định",
+				role: member.role
+			}));
+			
+			console.log(`✅ Found ${formattedMembers.length} members for project ID: ${projectId}`);
+			return formattedMembers;
+		} catch (error) {
+			console.error("❌ Error getting project members:", error);
+			throw error;
+		}
 	}
 }
 

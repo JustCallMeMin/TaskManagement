@@ -46,7 +46,7 @@ const ProjectCard = ({ project, onEdit, onDelete, onManageMembers }) => {
   };
 
   const handleCardClick = () => {
-    navigate(`/projects/${project._id}`);
+    navigate(`/projects/${project._id || project.projectId}`);
   };
 
   const handleEdit = (event) => {
@@ -58,7 +58,10 @@ const ProjectCard = ({ project, onEdit, onDelete, onManageMembers }) => {
   const handleDelete = (event) => {
     event.stopPropagation();
     handleMenuClose();
-    onDelete(project);
+    onDelete({
+      ...project,
+      _id: project._id || project.projectId
+    });
   };
 
   const handleManageMembers = (event) => {
@@ -98,33 +101,16 @@ const ProjectCard = ({ project, onEdit, onDelete, onManageMembers }) => {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
             <Typography variant="h6" component="div" noWrap sx={{ flexGrow: 1 }}>
               {project.name}
+              {project.isPersonal && (
+                <Chip 
+                  label="Personal" 
+                  size="small" 
+                  color="primary" 
+                  variant="outlined"
+                  sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} 
+                />
+              )}
             </Typography>
-            <IconButton 
-              size="small" 
-              onClick={handleMenuOpen}
-              sx={{ ml: 1 }}
-            >
-              <MoreIcon />
-            </IconButton>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MenuItem onClick={handleEdit}>
-                <EditIcon fontSize="small" sx={{ mr: 1 }} />
-                Edit
-              </MenuItem>
-              <MenuItem onClick={handleManageMembers}>
-                <PersonAddIcon fontSize="small" sx={{ mr: 1 }} />
-                Manage Members
-              </MenuItem>
-              <MenuItem onClick={handleDelete}>
-                <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
-                Delete
-              </MenuItem>
-            </Menu>
           </Box>
           
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2, height: 40, overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -185,6 +171,32 @@ const ProjectCard = ({ project, onEdit, onDelete, onManageMembers }) => {
           </Grid>
         </CardContent>
       </CardActionArea>
+      <IconButton 
+        size="small" 
+        onClick={handleMenuOpen}
+        sx={{ ml: 1 }}
+      >
+        <MoreIcon />
+      </IconButton>
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <MenuItem onClick={handleEdit}>
+          <EditIcon fontSize="small" sx={{ mr: 1 }} />
+          Edit
+        </MenuItem>
+        <MenuItem onClick={handleManageMembers}>
+          <PersonAddIcon fontSize="small" sx={{ mr: 1 }} />
+          Manage Members
+        </MenuItem>
+        <MenuItem onClick={handleDelete}>
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+          Delete
+        </MenuItem>
+      </Menu>
     </Card>
   );
 };

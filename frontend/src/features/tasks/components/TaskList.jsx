@@ -21,33 +21,54 @@ import { useNavigate } from 'react-router-dom';
 import { useTaskService } from '../hooks/useTaskService';
 import { TASK_PRIORITY, TASK_STATUS } from '../constants';
 
-const TaskList = () => {
+const TaskList = ({ tasks: propTasks, onTaskUpdated, projectId, showFilters = true }) => {
   const navigate = useNavigate();
-  const { getTasks, deleteTask, loading, error } = useTaskService();
-  const [tasks, setTasks] = React.useState([]);
+  const { getTasks, deleteTask, loading: serviceLoading, error: serviceError } = useTaskService();
+  const [tasks, setTasks] = React.useState(propTasks || []);
+  const [loading, setLoading] = React.useState(!propTasks);
+  const [error, setError] = React.useState(null);
 
   useEffect(() => {
+    // If tasks are provided via props, use those
+    if (propTasks) {
+      setTasks(propTasks);
+      setLoading(false);
+      return;
+    }
+    
     const fetchTasks = async () => {
+      setLoading(true);
       try {
         const data = await getTasks();
         setTasks(data || []);
+        setLoading(false);
       } catch (err) {
-        // We'll let the useTaskService hook handle error display
         // Only log non-404 errors to console
         if (!err.response || err.response.status !== 404) {
           console.error('Error fetching tasks:', err);
         }
         // Set tasks to empty array to ensure we still render the empty state
         setTasks([]);
+        setError('Failed to load tasks');
+        setLoading(false);
       }
     };
+    
     fetchTasks();
-  }, [getTasks]);
+  }, [getTasks, propTasks]);
+
+  // Update local tasks when prop tasks change
+  useEffect(() => {
+    if (propTasks) {
+      setTasks(propTasks);
+    }
+  }, [propTasks]);
 
   const handleDelete = async (id) => {
     try {
       await deleteTask(id);
-      setTasks(tasks.filter(task => task._id !== id));
+      // Filter out the deleted task, considering both id and _id properties
+      setTasks(tasks.filter(task => (task._id !== id && task.id !== id)));
     } catch (err) {
       console.error('Error deleting task:', err);
     }
@@ -87,16 +108,19 @@ const TaskList = () => {
     <Paper elevation={2} sx={{ p: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h5" component="h1">
-          My Tasks
+          {projectId ? 'Project Tasks' : 'My Tasks'}
         </Typography>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/tasks/new')}
-        >
-          New Task
-        </Button>
+        {/* Only show the Add Task button when not in project view - prevents duplicate buttons */}
+        {!projectId && (
+          <Button 
+            variant="contained" 
+            color="primary" 
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/tasks/new')}
+          >
+            New Task
+          </Button>
+        )}
       </Box>
 
       {loading ? (
@@ -126,7 +150,7 @@ const TaskList = () => {
         <List>
           {tasks.map((task) => (
             <ListItem
-              key={task._id}
+              key={task._id || task.id}
               sx={{
                 mb: 2,
                 bgcolor: 'background.paper',
@@ -139,7 +163,7 @@ const TaskList = () => {
                   <IconButton
                     edge="end"
                     aria-label="view"
-                    onClick={() => navigate(`/tasks/${task._id}`)}
+                    onClick={() => navigate(`/tasks/${task._id || task.id}`)}
                     sx={{ mr: 1 }}
                   >
                     <ViewIcon />
@@ -147,7 +171,7 @@ const TaskList = () => {
                   <IconButton
                     edge="end"
                     aria-label="edit"
-                    onClick={() => navigate(`/tasks/${task._id}/edit`)}
+                    onClick={() => navigate(`/tasks/${task._id || task.id}/edit`)}
                     sx={{ mr: 1 }}
                   >
                     <EditIcon />
@@ -155,7 +179,7 @@ const TaskList = () => {
                   <IconButton
                     edge="end"
                     aria-label="delete"
-                    onClick={() => handleDelete(task._id)}
+                    onClick={() => handleDelete(task._id || task.id)}
                   >
                     <DeleteIcon />
                   </IconButton>
