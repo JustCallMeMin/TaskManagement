@@ -72,9 +72,9 @@ class AuthController {
 	static async login(req, res) {
 		try {
 			// Validate input
-			const validationResult = validationResult(req);
-			if (!validationResult.isEmpty()) {
-				return errorResponse(res, validationResult.errors[0].msg, 400);
+			const errors = validationResult(req);
+			if (!errors.isEmpty()) {
+				return errorResponse(res, errors.errors[0].msg, 400);
 			}
 
 			const { email, password, twoFactorToken } = req.body;

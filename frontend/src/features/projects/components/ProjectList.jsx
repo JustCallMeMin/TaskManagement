@@ -228,24 +228,37 @@ const ProjectList = () => {
           <CircularProgress />
         </Box>
       ) : filteredProjects.length === 0 ? (
-        <Box sx={{ textAlign: 'center', my: 5 }}>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No projects found
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {searchTerm || statusFilter 
-              ? 'Try adjusting your filters' 
-              : 'Create your first project to get started'}
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={handleCreateProject}
-            sx={{ mt: 2 }}
-          >
-            Create Project
-          </Button>
+        <Box sx={{ 
+          textAlign: 'center', 
+          my: 5, 
+          py: 8,
+          px: 3,
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          boxShadow: 1
+        }}>
+          <Box sx={{ maxWidth: 500, mx: 'auto' }}>
+            <Typography variant="h5" color="text.primary" gutterBottom>
+              {searchTerm || statusFilter 
+                ? 'No matching projects found' 
+                : 'Welcome to Your Project Management'}
+            </Typography>
+            <Typography variant="body1" color="text.secondary" paragraph sx={{ mb: 3 }}>
+              {searchTerm || statusFilter 
+                ? 'Try adjusting your search or filter criteria to find what you\'re looking for.' 
+                : 'You currently don\'t have any projects. Create your first project to start organizing your tasks and collaborating with your team.'}
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              startIcon={<AddIcon />}
+              onClick={handleCreateProject}
+              sx={{ px: 4 }}
+            >
+              Create Your First Project
+            </Button>
+          </Box>
         </Box>
       ) : (
         <Grid container spacing={3}>

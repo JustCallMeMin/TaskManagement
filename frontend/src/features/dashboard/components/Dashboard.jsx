@@ -38,27 +38,45 @@ function createMonthlyProjectsData(data) {
 }
 
 function createTaskStatusData(stats) {
-  // Kiểm tra xem có dữ liệu không
+  // Check if we have data
   if (!stats || !stats.tasks) return [];
   
   const completedTasks = stats.completedTasks?.count || 0;
   const totalTasks = stats.tasks?.count || 0;
   
-  // Tránh trường hợp completedTasks > totalTasks 
+  // If there are no tasks, return empty array
+  if (totalTasks === 0) return [];
+  
+  // If there's only 1 task total, create a more meaningful visualization 
+  // by showing as partial completion based on status
+  if (totalTasks === 1) {
+    // If it's completed, show as 100% completed
+    if (completedTasks === 1) {
+      return [
+        { label: "Completed", value: 1 }
+      ];
+    } 
+    // If not completed, show as partially in progress (looks better visually)
+    else {
+      return [
+        { label: "In Progress", value: 0.7 },
+        { label: "Not Started", value: 0.3 }
+      ];
+    }
+  }
+  
+  // For normal case with multiple tasks
   const safeCompletedTasks = Math.min(completedTasks, totalTasks);
   const inProgressTasks = Math.max(0, totalTasks - safeCompletedTasks);
   
-  // Nếu không có tasks nào, trả về mảng rỗng
-  if (totalTasks === 0) return [];
-  
-  // Nếu tất cả tasks đều hoàn thành, chỉ trả về 1 phần
+  // If all tasks are completed
   if (safeCompletedTasks === totalTasks) {
     return [{ label: "Completed", value: safeCompletedTasks }];
   }
   
-  // Nếu không có tasks nào hoàn thành
+  // If no tasks are completed
   if (safeCompletedTasks === 0) {
-    // Phân chia tasks chưa hoàn thành thành In Progress và Not Started
+    // Split uncompleted tasks into In Progress and Not Started
     const inProgressValue = Math.floor(inProgressTasks * 0.7);
     const notStartedValue = inProgressTasks - inProgressValue;
     return [
@@ -67,8 +85,7 @@ function createTaskStatusData(stats) {
     ];
   }
   
-  // Trường hợp thông thường: có cả tasks hoàn thành và chưa hoàn thành
-  // Phân chia tasks chưa hoàn thành thành In Progress và Not Started
+  // Normal case: mix of completed and uncompleted tasks
   const inProgressValue = Math.floor(inProgressTasks * 0.7);
   const notStartedValue = inProgressTasks - inProgressValue;
   
@@ -172,9 +189,9 @@ function Dashboard() {
   }
 
   return (
-    <MDBox py={3} px={2}> {/* Added px for consistent horizontal padding */}
+    <MDBox py={3} px={2} sx={{ maxWidth: '1200px', margin: '0 auto' }}>
       {/* Top stats cards row - fixed equal width cards with proper grid */}
-      <Grid container spacing={3}>
+      <Grid container spacing={3} justifyContent="center">
         <Grid item xs={12} sm={6} lg={3}>
           <MDBox 
             height="100%" 
@@ -266,15 +283,16 @@ function Dashboard() {
 
       {/* Middle charts row - fixed heights and proper grid */}
       <MDBox mt={4.5}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} lg={4}>
+        <Grid container spacing={3} justifyContent="center">
+          <Grid item xs={12} md={6} lg={4}>
             <MDBox 
               height="100%" 
               sx={{ 
                 boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
                 borderRadius: "12px",
                 overflow: "hidden",
-                height: "420px"
+                height: "420px",
+                backgroundColor: "white"
               }}
             >
               {createTaskStatusData(dashboardData.stats).length > 0 ? (
@@ -346,14 +364,15 @@ function Dashboard() {
               )}
             </MDBox>
           </Grid>
-          <Grid item xs={12} lg={8}>
+          <Grid item xs={12} md={6} lg={8}>
             <MDBox 
-              height="100%" 
+              height="100%"
               sx={{ 
                 boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
                 borderRadius: "12px",
                 overflow: "hidden",
-                height: "420px"
+                height: "420px",
+                backgroundColor: "white"
               }}
             >
               <ReportsLineChart
@@ -368,23 +387,22 @@ function Dashboard() {
         </Grid>
       </MDBox>
 
-      {/* Bottom charts/tables row */}
+      {/* Bottom project status section with proper grid and spacing */}
       <MDBox mt={4.5}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} lg={8}>
+        <Grid container spacing={3} justifyContent="center">
+          <Grid item xs={12} md={7}>
             <MDBox 
-              height="100%" 
-              sx={{
-                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
-                borderRadius: "12px",
-                overflow: "hidden",
+              sx={{ 
+                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)", 
+                borderRadius: "12px", 
                 backgroundColor: "white",
-                height: "420px"
+                p: 3,
+                height: "100%"
               }}
             >
-              <MDBox display="flex" justifyContent="space-between" alignItems="center" p={3} pb={0}>
-                <MDTypography variant="h5">Project Status</MDTypography>
-              </MDBox>
+              <MDTypography variant="h6" sx={{ mb: 3 }}>
+                Project Status
+              </MDTypography>
               <MDBox p={3} pt={1.5}>
                 {dashboardData.projectsTableData.rows.length > 0 ? (
                   <DataTable
@@ -417,16 +435,20 @@ function Dashboard() {
               </MDBox>
             </MDBox>
           </Grid>
-          <Grid item xs={12} lg={4}>
+          <Grid item xs={12} md={5}>
             <MDBox 
               height="100%" 
               sx={{ 
                 boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)",
                 borderRadius: "12px",
                 overflow: "hidden",
-                height: "420px"
+                backgroundColor: "white",
+                p: 3
               }}
             >
+              <MDTypography variant="h6" sx={{ mb: 3 }}>
+                Monthly Projects
+              </MDTypography>
               <ReportsBarChart
                 color="info"
                 title="Monthly Projects"

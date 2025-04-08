@@ -12,15 +12,25 @@ class ProjectService {
   async getAllProjects() {
     try {
       // Always try the real API call first
-      const response = await api.get('/projects');
+      const response = await api.get('/api/projects');
       console.log('Complete API response:', {
         status: response.status,
         data: response.data
       });
       
-      // The response data is the array directly
-      const projects = Array.isArray(response.data) ? response.data : [];
-      console.log('Raw projects array:', projects);
+      // Handle the API response format: { success: true, data: [], message: "" }
+      const responseData = response.data;
+      let projects = [];
+      
+      if (responseData && responseData.data) {
+        // New API format
+        projects = responseData.data;
+      } else if (Array.isArray(responseData)) {
+        // Direct array format (fallback)
+        projects = responseData;
+      }
+      
+      console.log('Projects extracted from response:', projects);
       
       if (projects.length === 0) {
         console.log('No projects found in response');
@@ -34,7 +44,7 @@ class ProjectService {
           _id: project.projectId || project._id,
           name: project.name || 'Untitled Project',
           description: project.description || '',
-          status: project.status || PROJECT_STATUS.ACTIVE,
+          status: project.status || PROJECT_STATUS.IN_PROGRESS,
           isPersonal: Boolean(project.isPersonal),
           owner: project.owner || null,
           members: project.members || [],
@@ -58,7 +68,7 @@ class ProjectService {
    */
   async createProject(projectData) {
     try {
-      const response = await api.post('/projects', projectData);
+      const response = await api.post('/api/projects', projectData);
       return response.data;
     } catch (error) {
       console.error('Error creating project:', error);
@@ -74,7 +84,7 @@ class ProjectService {
    */
   async updateProject(projectId, projectData) {
     try {
-      const response = await api.put(`/projects/${projectId}`, projectData);
+      const response = await api.put(`/api/projects/${projectId}`, projectData);
       return response.data;
     } catch (error) {
       console.error('Error updating project:', error);
@@ -89,7 +99,7 @@ class ProjectService {
    */
   async deleteProjects(projectIds) {
     try {
-      const response = await api.delete('/projects', { data: { projectIds } });
+      const response = await api.delete('/api/projects', { data: { projectIds } });
       return response.data;
     } catch (error) {
       console.error('Error deleting projects:', error);
@@ -105,7 +115,7 @@ class ProjectService {
    */
   async addMembers(projectId, memberIds) {
     try {
-      const response = await api.post(`/projects/${projectId}/members`, { members: memberIds });
+      const response = await api.post(`/api/projects/${projectId}/members`, { members: memberIds });
       return response.data;
     } catch (error) {
       console.error('Error adding members:', error);
@@ -121,7 +131,7 @@ class ProjectService {
    */
   async removeMembers(projectId, userIds) {
     try {
-      const response = await api.delete(`/projects/${projectId}/members`, { data: { userIds } });
+      const response = await api.delete(`/api/projects/${projectId}/members`, { data: { userIds } });
       return response.data;
     } catch (error) {
       console.error('Error removing members:', error);
@@ -137,7 +147,7 @@ class ProjectService {
   async getProjectById(projectId) {
     try {
       console.log(`Fetching project details for ID: ${projectId}`);
-      const response = await api.get(`/projects/${projectId}`);
+      const response = await api.get(`/api/projects/${projectId}`);
       console.log('Project details response:', response);
       
       // The API returns { success: true, data: {...}, message: string }
@@ -179,7 +189,7 @@ class ProjectService {
   async getProjectMembers(projectId) {
     try {
       console.log(`Fetching members for project ID: ${projectId}`);
-      const response = await api.get(`/projects/${projectId}/members`);
+      const response = await api.get(`/api/projects/${projectId}/members`);
       console.log('Project members response:', response);
       
       // The API returns { success: true, data: [...], message: string }

@@ -13,7 +13,8 @@ class TaskController {
 				message: "Task cá nhân đã được tạo thành công."
 			});
 		} catch (error) {
-			res.status(400).json({ error: error.message });
+			console.error("Error creating personal task:", error);
+			res.status(400).json({ success: false, error: error.message });
 		}
 	}
 
@@ -68,14 +69,26 @@ class TaskController {
 
 	static async getAllTasks(req, res) {
 		try {
+			console.log(`🔍 Getting all tasks for user: ${req.user.id}`);
 			const tasks = await TaskService.getAllTasks(req.user.id);
+			console.log(`🔍 Returning ${tasks.length} tasks`);
+			
+			// Always return 200 with a success response, even if tasks is empty
 			return res.status(200).json({
 				success: true,
 				data: tasks || [],
-				message: "Danh sách công việc của bạn."
+				message: tasks.length > 0 
+					? "Danh sách công việc của bạn." 
+					: "Bạn chưa có công việc nào. Hãy tạo công việc đầu tiên."
 			});
 		} catch (error) {
-			return res.status(400).json({ error: error.message });
+			console.error("❌ Error getting tasks:", error);
+			// Still return 200 with empty array in case of error
+			return res.status(200).json({
+				success: true,
+				data: [],
+				message: "Không thể lấy danh sách công việc. Hãy thử lại sau."
+			});
 		}
 	}
 

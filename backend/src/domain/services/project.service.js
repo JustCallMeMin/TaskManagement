@@ -32,7 +32,7 @@ class ProjectService {
 			description: "Your personal task list",
 			ownerId: userId,
 			isPersonal: true,
-			status: PROJECT_STATUS.ACTIVE,
+			status: PROJECT_STATUS.IN_PROGRESS,
 			startDate: startDate,
 			endDate: endDate,
 		});
@@ -40,9 +40,11 @@ class ProjectService {
 		return newProject;
 	}
 
-	// 1️⃣.1️⃣ Hàm tiện ích - Lấy hoặc tạo Personal Project (Để API rõ ràng hơn)
+	// 1️⃣.1️⃣ Hàm tiện ích - Lấy Personal Project (không tự tạo)
 	static async getOrCreatePersonalProject(userId) {
-		return this.createPersonalProject(userId); // Reuse the existing logic
+		// Only find the personal project, don't create if it doesn't exist
+		const existingProject = await ProjectRepository.findByOwner(userId, true);
+		return existingProject; // Will return null if not found
 	}
 
 	// 2️⃣ Tạo Organization Project
@@ -58,7 +60,7 @@ class ProjectService {
 			...projectData,
 			ownerId: userId,
 			isPersonal: false,
-			status: PROJECT_STATUS.ACTIVE,
+			status: PROJECT_STATUS.IN_PROGRESS,
 		});
 
 		// Tự động thêm người tạo vào project với vai trò Owner

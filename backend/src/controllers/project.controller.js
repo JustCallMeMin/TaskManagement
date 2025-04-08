@@ -83,11 +83,11 @@ class ProjectController {
             res.set('Pragma', 'no-cache');
             res.set('Expires', '0');
 
-            // Make sure the user has a personal project
+            // Check if the user has a personal project (don't create one)
             const personalProject = await ProjectService.getOrCreatePersonalProject(req.user.id);
-            console.log("🔍 Personal project:", personalProject);
+            console.log("🔍 Personal project:", personalProject || "Not found");
             
-            // Now get all projects including the personal one
+            // Get all projects for the user
             const projects = await ProjectService.getAllProjects(req.user.id);
             console.log("🔍 All projects count:", projects.length);
             

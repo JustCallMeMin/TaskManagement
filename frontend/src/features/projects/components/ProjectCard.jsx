@@ -76,12 +76,14 @@ const ProjectCard = ({ project, onEdit, onDelete, onManageMembers }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case PROJECT_STATUS.ACTIVE:
-        return 'success';
+      case PROJECT_STATUS.NOT_STARTED:
+        return 'info';
+      case PROJECT_STATUS.IN_PROGRESS:
+        return 'primary';
       case PROJECT_STATUS.ON_HOLD:
         return 'warning';
       case PROJECT_STATUS.COMPLETED:
-        return 'info';
+        return 'success';
       case PROJECT_STATUS.CANCELLED:
         return 'error';
       default:
@@ -97,7 +99,7 @@ const ProjectCard = ({ project, onEdit, onDelete, onManageMembers }) => {
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardActionArea onClick={handleCardClick}>
-        <CardContent sx={{ flexGrow: 1 }}>
+        <CardContent sx={{ flexGrow: 1, position: 'relative', pb: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
             <Typography variant="h6" component="div" noWrap sx={{ flexGrow: 1 }}>
               {project.name}
@@ -111,6 +113,24 @@ const ProjectCard = ({ project, onEdit, onDelete, onManageMembers }) => {
                 />
               )}
             </Typography>
+            <IconButton 
+              size="small" 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMenuOpen(e);
+              }}
+              sx={{ 
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                }
+              }}
+            >
+              <MoreIcon fontSize="small" />
+            </IconButton>
           </Box>
           
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2, height: 40, overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -171,13 +191,6 @@ const ProjectCard = ({ project, onEdit, onDelete, onManageMembers }) => {
           </Grid>
         </CardContent>
       </CardActionArea>
-      <IconButton 
-        size="small" 
-        onClick={handleMenuOpen}
-        sx={{ ml: 1 }}
-      >
-        <MoreIcon />
-      </IconButton>
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}

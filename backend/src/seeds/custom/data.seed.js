@@ -24,7 +24,7 @@ const seedProjects = async () => {
       {
         name: 'Thiết kế website công ty',
         description: 'Dự án thiết kế và phát triển website doanh nghiệp với đầy đủ tính năng quản lý và bán hàng',
-        status: PROJECT_STATUS.ACTIVE,
+        status: PROJECT_STATUS.IN_PROGRESS,
         startDate: moment().subtract(30, 'days').toDate(),
         endDate: moment().add(60, 'days').toDate(),
         ownerId: userId,
@@ -35,7 +35,7 @@ const seedProjects = async () => {
       {
         name: 'Phát triển ứng dụng di động',
         description: 'Xây dựng ứng dụng mobile cho khách hàng trên cả nền tảng iOS và Android',
-        status: PROJECT_STATUS.ACTIVE,
+        status: PROJECT_STATUS.IN_PROGRESS,
         startDate: moment().subtract(15, 'days').toDate(),
         endDate: moment().add(45, 'days').toDate(),
         ownerId: userId,
@@ -46,7 +46,7 @@ const seedProjects = async () => {
       {
         name: 'Dự án cá nhân',
         description: 'Các công việc và nhiệm vụ cá nhân cần hoàn thành',
-        status: PROJECT_STATUS.ACTIVE,
+        status: PROJECT_STATUS.IN_PROGRESS,
         startDate: moment().subtract(60, 'days').toDate(),
         endDate: moment().add(30, 'days').toDate(),
         ownerId: userId,

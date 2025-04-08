@@ -32,7 +32,7 @@ const App = () => {
     <AuthProvider>
       <ToastContainer 
         position="top-right"
-        autoClose={5000}
+        autoClose={3000}
         hideProgressBar={false}
         newestOnTop
         closeOnClick
@@ -40,6 +40,7 @@ const App = () => {
         pauseOnFocusLoss
         draggable
         pauseOnHover
+        limit={1}
       />
       <Routes>
         {/* Root redirect */}

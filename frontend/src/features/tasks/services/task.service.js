@@ -11,19 +11,27 @@ class TaskService {
    */
   async getAllTasks() {
     try {
-      const response = await api.get("/tasks");
+      console.log('Fetching all tasks...');
+      const response = await api.get("/api/tasks");
+      console.log('Task API response received:', response.status);
+      
       // Check if the response has a data property (new format) or is an array (old format)
-      const tasks = response.data && response.data.data 
-        ? response.data.data  // New format: { success, data, message }
-        : Array.isArray(response.data) 
-          ? response.data     // Old format: direct array
-          : [];               // Fallback to empty array
-          
-      console.log('Tasks received from API:', tasks);
+      let tasks = [];
+      
+      if (response.data && response.data.data) {
+        // New format: { success, data, message }
+        tasks = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        // Old format: direct array
+        tasks = response.data;
+      }
+      
+      console.log(`Received ${tasks.length} tasks from API`);
       return tasks;
     } catch (error) {
+      // Log the error but don't propagate it - return empty array instead
       console.error('Error getting tasks:', error);
-      // Return empty array if API call fails
+      console.log('Returning empty task list due to error');
       return [];
     }
   }

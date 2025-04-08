@@ -14,7 +14,13 @@ const API_URLS = {
 
 // API Endpoints
 const API_ENDPOINTS = {
-  AUTH: '/auth',
+  AUTH: {
+    LOGIN: '/auth/login',
+    REGISTER: '/auth/register',
+    LOGOUT: '/auth/logout',
+    REFRESH: '/auth/refresh',
+    VERIFY: '/auth/verify'
+  },
   USER: '/users',
   PROJECT: '/projects',
   TASK: '/tasks'

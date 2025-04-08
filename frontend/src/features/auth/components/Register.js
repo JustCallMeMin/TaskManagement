@@ -13,9 +13,13 @@ import {
 	CircularProgress,
 	Link,
 	Alert,
+	InputAdornment,
+	IconButton
 } from "@mui/material";
 import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "react-toastify";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 const schema = yup.object().shape({
 	firstName: yup.string().required("Họ là bắt buộc"),
@@ -44,6 +48,8 @@ const Register = () => {
 	const [loading, setLoading] = useState(false);
 	const [serverError, setServerError] = useState("");
 	const [serverFieldErrors, setServerFieldErrors] = useState({});
+	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
 	const {
 		register,
@@ -54,6 +60,14 @@ const Register = () => {
 		resolver: yupResolver(schema),
 		mode: "onChange",
 	});
+
+	const togglePasswordVisibility = () => {
+		setShowPassword(!showPassword);
+	};
+
+	const toggleConfirmPasswordVisibility = () => {
+		setShowConfirmPassword(!showConfirmPassword);
+	};
 
 	const onSubmit = async (data) => {
 		try {
@@ -174,12 +188,21 @@ const Register = () => {
 							fullWidth
 							name="password"
 							label="Mật khẩu"
-							type="password"
+							type={showPassword ? "text" : "password"}
 							id="password"
 							autoComplete="new-password"
 							{...register("password")}
 							error={!!errors.password}
 							helperText={errors.password?.message}
+							InputProps={{
+								endAdornment: (
+									<InputAdornment position="end">
+										<IconButton onClick={togglePasswordVisibility}>
+											{showPassword ? <VisibilityIcon /> : <VisibilityOffIcon />}
+										</IconButton>
+									</InputAdornment>
+								),
+							}}
 						/>
 
 						<TextField
@@ -188,11 +211,20 @@ const Register = () => {
 							fullWidth
 							name="confirmPassword"
 							label="Xác nhận mật khẩu"
-							type="password"
+							type={showConfirmPassword ? "text" : "password"}
 							id="confirmPassword"
 							{...register("confirmPassword")}
 							error={!!errors.confirmPassword}
 							helperText={errors.confirmPassword?.message}
+							InputProps={{
+								endAdornment: (
+									<InputAdornment position="end">
+										<IconButton onClick={toggleConfirmPasswordVisibility}>
+											{showConfirmPassword ? <VisibilityIcon /> : <VisibilityOffIcon />}
+										</IconButton>
+									</InputAdornment>
+								),
+							}}
 						/>
 
 						<TextField

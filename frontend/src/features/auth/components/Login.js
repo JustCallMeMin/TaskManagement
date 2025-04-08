@@ -14,6 +14,8 @@ import {
 	Link,
 	Divider,
 	Alert,
+	InputAdornment,
+	IconButton,
 } from "@mui/material";
 import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "react-toastify";
@@ -21,6 +23,8 @@ import { authService } from "../services/auth.service";
 import { ERROR_MESSAGES, SUCCESS_MESSAGES, API_URL } from "../../../shared/utils/constants";
 import GitHubIcon from '@mui/icons-material/GitHub';
 import GoogleIcon from '@mui/icons-material/Google';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 const schema = yup.object().shape({
 	email: yup.string().email("Email không hợp lệ").required("Email là bắt buộc"),
@@ -32,6 +36,7 @@ const Login = () => {
 	const { login } = useAuth();
 	const [loading, setLoading] = useState(false);
 	const [serverError, setServerError] = useState("");
+	const [showPassword, setShowPassword] = useState(false);
 
 	const {
 		register,
@@ -41,6 +46,10 @@ const Login = () => {
 	} = useForm({
 		resolver: yupResolver(schema)
 	});
+
+	const togglePasswordVisibility = () => {
+		setShowPassword((prev) => !prev);
+	};
 
 	const onSubmit = async (data) => {
 		try {
@@ -145,12 +154,21 @@ const Login = () => {
 							fullWidth
 							name="password"
 							label="Mật khẩu"
-							type="password"
+							type={showPassword ? "text" : "password"}
 							id="password"
 							autoComplete="current-password"
 							{...register("password")}
 							error={!!errors.password}
 							helperText={errors.password?.message}
+							InputProps={{
+								endAdornment: (
+									<InputAdornment position="end">
+										<IconButton onClick={togglePasswordVisibility}>
+											{showPassword ? <VisibilityIcon /> : <VisibilityOffIcon />}
+										</IconButton>
+									</InputAdornment>
+								),
+							}}
 						/>
 
 						<Button

@@ -24,24 +24,45 @@ class TaskService {
 
 		// Handle personal tasks (tasks without a project)
 		if (isPersonal || !projectId) {
-			// Theo mô hình Jira/Trello: Mỗi User có một Personal Project
-			// Tự động tạo hoặc lấy Personal Project nếu chưa có
+			// Check if user has a personal project
 			const personalProject = await ProjectService.getOrCreatePersonalProject(userId);
+			
+			// If no personal project exists and user is trying to create a personal task,
+			// we should create a personal project first
 			if (!personalProject) {
-				throw new Error("Không thể tạo hoặc tìm project cá nhân.");
+				// Create a new personal project for this user
+				const newPersonalProject = await ProjectService.createPersonalProject(userId);
+				if (!newPersonalProject) {
+					throw new Error("Không thể tạo project cá nhân.");
+				}
+				
+				// Create task with the newly created personal project ID
+				const task = await TaskRepository.create({
+					title,
+					description,
+					dueDate,
+					priority,
+					projectId: newPersonalProject._id,
+					assignedUserId: assignedUserId || userId,
+					status: TASK_STATUS.TODO,
+					isPersonal: true,
+					createdBy: userId,
+				});
+
+				return new TaskDTO(task);
 			}
 			
-			// Create task with the personal project ID
+			// Use existing personal project
 			const task = await TaskRepository.create({
 				title,
 				description,
 				dueDate,
 				priority,
-				projectId: personalProject._id, // Use the personal project ID
-				assignedUserId: assignedUserId || userId, // Default to creator
+				projectId: personalProject._id,
+				assignedUserId: assignedUserId || userId,
 				status: TASK_STATUS.TODO,
-				isPersonal: true, // Mark explicitly as personal
-				createdBy: userId, // Explicitly set creator
+				isPersonal: true,
+				createdBy: userId,
 			});
 
 			return new TaskDTO(task);
@@ -151,12 +172,17 @@ class TaskService {
 	// 🔹 Lấy danh sách Task của User
 	static async getAllTasks(userId) {
 		try {
+			console.log(`🔍 Getting tasks for user: ${userId}`);
 			const tasks = await TaskRepository.findByUser(userId);
+			console.log(`🔍 Found ${tasks.length} tasks`);
+			
 			// Map each task to a DTO to ensure consistent formatting
-			return tasks.map(task => new TaskDTO(task)) || []; // Ensure we always return an array
+			// Always return an array, even if empty
+			return tasks.map(task => new TaskDTO(task)) || [];
 		} catch (error) {
 			console.error("Error fetching tasks:", error);
-			return []; // Return empty array instead of throwing error
+			// Never throw an error, always return empty array for graceful empty states
+			return [];
 		}
 	}
 

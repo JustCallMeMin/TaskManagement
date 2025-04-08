@@ -1,5 +1,5 @@
 import api from '../../../services/api.service';
-import { API_ENDPOINTS, LOCAL_STORAGE_KEYS } from '../../../shared/utils/constants';
+import { LOCAL_STORAGE_KEYS } from '../../../shared/utils/constants';
 import { jwtDecode } from "jwt-decode";
 
 class AuthService {
@@ -10,7 +10,7 @@ class AuthService {
 	async login(data) {
 		try {
 			console.log('Login data received from form: ', data);
-			const response = await this.api.post(API_ENDPOINTS.AUTH.LOGIN, data);
+			const response = await this.api.post('/api/auth/login', data);
 			
 			// Extract token and user from response
 			const token = response.token || response.data?.token;
@@ -53,16 +53,28 @@ class AuthService {
 					data: error.response.data,
 					headers: error.response.headers
 				});
+				
+				// Return a user-friendly error message based on the error
+				if (error.response.status === 401) {
+					const errorMessage = error.response.data?.error || 'Thông tin đăng nhập không đúng';
+					throw new Error(errorMessage);
+				} else if (error.response.status === 403) {
+					throw new Error('Tài khoản của bạn không có quyền truy cập');
+				} else if (error.response.status === 429) {
+					throw new Error('Quá nhiều lần đăng nhập không thành công. Vui lòng thử lại sau');
+				} else if (error.response.status >= 500) {
+					throw new Error('Hệ thống đang gặp sự cố. Vui lòng thử lại sau');
+				}
 			}
 			
-			// Preserve the full error object for better handling in components
+			console.log('Login error:', error);
 			throw error;
 		}
 	}
 
 	async register(userData) {
 		try {
-			return await this.api.post(API_ENDPOINTS.AUTH.REGISTER, userData);
+			return await this.api.post('/api/auth/register', userData);
 		} catch (error) {
 			console.error('Registration API error:', error.response || error);
 			// Preserve the full error object for better handling in components
@@ -72,29 +84,29 @@ class AuthService {
 
 	async logout() {
 		try {
-			await this.api.post(API_ENDPOINTS.AUTH.LOGOUT);
+			await this.api.post('/api/auth/logout');
 			localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
 			localStorage.removeItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN);
 			localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+			return { success: true };
 		} catch (error) {
-			// Even if the API call fails, we still want to remove the token
-			localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
-			localStorage.removeItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN);
-			localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+			console.error('Logout API error:', error.response || error);
+			// Still clear local storage even if API call fails
+			localStorage.clear();
 			throw error;
 		}
 	}
 
 	async verifyEmail(token) {
-		return this.api.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { token });
+		return this.api.post('/api/auth/verify-email', { token });
 	}
 
 	async forgotPassword(email) {
-		return this.api.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+		return this.api.post('/api/auth/forgot-password', { email });
 	}
 
 	async resetPassword(otp, newPassword) {
-		return this.api.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, { otp, newPassword });
+		return this.api.post('/api/auth/reset-password', { otp, newPassword });
 	}
 
 	getCurrentUser() {
@@ -108,7 +120,7 @@ class AuthService {
 
 	async refreshToken() {
 		try {
-			const response = await this.api.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN);
+			const response = await this.api.post('/api/auth/refresh-token');
 			if (response.token) {
 				localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, response.token);
 			}

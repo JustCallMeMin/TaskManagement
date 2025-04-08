@@ -3,7 +3,6 @@ const authRoutes = require("./auth.routes");
 const userRoutes = require("./user.routes");
 const taskRoutes = require("./task.routes");
 const groupRoutes = require("./group.routes");
-const twoFactorRoutes = require("./two_factor.routes");
 const dashboardRoutes = require("./dashboard.routes");
 const projectRoutes = require("./project.routes");
 
@@ -23,9 +22,6 @@ router.use("/groups", groupRoutes);
 
 // 🔹 Project routes
 router.use("/projects", projectRoutes);
-
-// 🔹 Two factor routes
-router.use("/two-factor", twoFactorRoutes);
 
 // 🔹 Dashboard routes
 router.use("/dashboard", dashboardRoutes);

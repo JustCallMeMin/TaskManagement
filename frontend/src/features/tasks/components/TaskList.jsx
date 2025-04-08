@@ -41,15 +41,19 @@ const TaskList = ({ tasks: propTasks, onTaskUpdated, projectId, showFilters = tr
       try {
         const data = await getTasks();
         setTasks(data || []);
-        setLoading(false);
+        setError(null);
       } catch (err) {
-        // Only log non-404 errors to console
-        if (!err.response || err.response.status !== 404) {
+        // Handle 404 error as an empty list, not an error
+        if (err.response && err.response.status === 404) {
+          console.log('No tasks found (404), showing empty state');
+          setTasks([]);
+          setError(null);
+        } else {
           console.error('Error fetching tasks:', err);
+          setTasks([]);
+          setError('Failed to load tasks');
         }
-        // Set tasks to empty array to ensure we still render the empty state
-        setTasks([]);
-        setError('Failed to load tasks');
+      } finally {
         setLoading(false);
       }
     };

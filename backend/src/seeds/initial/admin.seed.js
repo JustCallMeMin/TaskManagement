@@ -11,25 +11,22 @@ require('dotenv').config();
  */
 const seedAdmin = async () => {
   try {
-    // Kiểm tra xem đã có admin chưa
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
-    const adminPhone = process.env.ADMIN_PHONE || '0123456789';
-    
-    const adminExists = await User.findOne({ email: adminEmail });
-    
-    if (adminExists) {
-      console.log("✅ Tài khoản admin đã tồn tại.");
-      return adminExists;
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@example.com";
+    const existingAdmin = await User.findOne({ email: adminEmail });
+    if (existingAdmin) {
+      console.log("[SEEDING ADMIN] Admin user already exists");
+      return;
     }
 
-    // Tạo admin user
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    const adminPassword = process.env.ADMIN_PASSWORD || "Admin@123";
+    const adminPhone = process.env.ADMIN_PHONE || "0123456789";
+
+    // Remove password hashing from here, let the model handle it
     const adminUser = await User.create({
       fullName: "System Admin",
       email: adminEmail,
       phone: adminPhone,
-      password: hashedPassword,
+      password: adminPassword, // Pass plain password, model will hash it
       isVerified: true,
       isBlocked: false,
     });

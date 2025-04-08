@@ -1,9 +1,12 @@
 import axios from 'axios';
-import { API_URL, LOCAL_STORAGE_KEYS } from '../shared/utils/constants';
+import { LOCAL_STORAGE_KEYS } from '../shared/utils/constants';
 import { toast } from 'react-toastify';
 
+// Define the base URL directly here to avoid any confusion
+const BASE_URL = 'http://localhost:5001';
+
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -93,7 +96,7 @@ api.interceptors.response.use(
         
         case 404:
           // For tasks endpoint, don't show error toast when no tasks exist (404)
-          if (error.config && error.config.url.includes('/tasks')) {
+          if (error.config && error.config.url && error.config.url.includes('/tasks')) {
             // Don't show toast for 404 on tasks endpoints
             // Just let the error propagate to be handled by the components
             break;

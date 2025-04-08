@@ -279,24 +279,20 @@ class AuthService {
 		ipAddress
 	) {
 		try {
-			console.log("Login attempt:", { 
-				email,
-				passwordProvided: !!password,
-				passwordType: typeof password,
-				passwordLength: password ? password.length : 0
-			});
-
-			// Tìm user theo email
-			const user = await UserRepository.findByEmail(email);
-			console.log("User found:", {
-				found: !!user,
-				id: user?._id,
-				email: user?.email,
-				hasPassword: !!user?.password,
-				passwordFieldType: user?.password ? typeof user.password : 'undefined',
-				passwordLength: user?.password ? user.password.length : 0
-			});
+			console.log(`Login attempt for email: ${email}`);
 			
+			// Tìm user theo email và populate roles
+			const user = await UserRepository.findByEmail(email);
+			console.log("Found user:", user ? {
+				id: user._id,
+				email: user.email,
+				fullName: user.fullName,
+				hasPassword: !!user.password,
+				passwordLength: user.password ? user.password.length : 0,
+				isVerified: user.isVerified,
+				isBlocked: user.isBlocked
+			} : "User not found");
+
 			if (!user) {
 				throw new Error("Email hoặc mật khẩu không đúng.");
 			}
@@ -308,6 +304,7 @@ class AuthService {
 
 			// Kiểm tra xác thực mật khẩu nếu không phải đăng nhập OAuth
 			if (password !== null) {
+				console.log(`Password provided: ${password ? "YES" : "NO"}, Length: ${password ? password.length : 0}`);
 				// Kiểm tra mật khẩu bằng comparePassword
 				let isPasswordValid = false;
 				try {

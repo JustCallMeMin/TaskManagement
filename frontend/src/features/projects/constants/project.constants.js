@@ -18,11 +18,11 @@ export const PROJECT_STATUS_COLORS = {
 };
 
 export const PROJECT_STATUS_LABELS = {
-  NOT_STARTED: 'Chưa bắt đầu',
-  IN_PROGRESS: 'Đang thực hiện',
-  ON_HOLD: 'Tạm dừng',
-  COMPLETED: 'Hoàn thành',
-  CANCELLED: 'Đã hủy'
+  NOT_STARTED: 'Not Started',
+  IN_PROGRESS: 'In Progress',
+  ON_HOLD: 'On Hold',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled'
 };
 
 /**
