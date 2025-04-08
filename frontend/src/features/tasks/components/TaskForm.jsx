@@ -14,41 +14,80 @@ import {
   CircularProgress,
   IconButton
 } from '@mui/material';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowBack as BackIcon } from '@mui/icons-material';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { ArrowBack as BackIcon, AddCircle as AddCircleIcon } from '@mui/icons-material';
 import { TASK_STATUS, TASK_PRIORITY } from '../constants';
 import { useTaskService } from '../hooks/useTaskService';
+import ProjectService from '../../projects/services/project.service';
 
 const TaskForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getTask, createTask, updateTask, loading, error } = useTaskService();
+  const { getTask, createTask, updateTask } = useTaskService();
   const isEditMode = Boolean(id);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     status: TASK_STATUS.TODO,
     priority: TASK_PRIORITY.MEDIUM,
-    dueDate: ''
+    dueDate: '',
+    projectId: ''
   });
+
+  const [projects, setProjects] = useState([]);
+
+  const [searchParams] = useSearchParams();
+  const projectIdFromUrl = searchParams.get('projectId');
 
   useEffect(() => {
     const fetchTask = async () => {
-      if (isEditMode) {
-        try {
-          const taskData = await getTask(id);
+      if (!isEditMode) return;
+      
+      setLoading(true);
+      try {
+        const taskData = await getTask(id);
+        if (taskData) {
           setFormData({
             ...taskData,
-            dueDate: taskData.dueDate ? taskData.dueDate.split('T')[0] : ''
+            dueDate: taskData.dueDate ? taskData.dueDate.split('T')[0] : '',
+            projectId: taskData.projectId || ''
           });
-        } catch (err) {
-          console.error('Error fetching task:', err);
         }
+      } catch (err) {
+        console.error('Error fetching task:', err);
+        setError('Failed to load task details');
+      } finally {
+        setLoading(false);
       }
     };
+    
     fetchTask();
   }, [id, getTask, isEditMode]);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const projectsData = await ProjectService.getAllProjects();
+        setProjects(projectsData || []);
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+      }
+    };
+    
+    fetchProjects();
+  }, []);
+
+  useEffect(() => {
+    if (projectIdFromUrl && !isEditMode) {
+      setFormData(prev => ({
+        ...prev,
+        projectId: projectIdFromUrl
+      }));
+    }
+  }, [projectIdFromUrl, isEditMode]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -61,6 +100,7 @@ const TaskForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setLoading(true);
       if (isEditMode) {
         await updateTask(id, formData);
       } else {
@@ -69,6 +109,9 @@ const TaskForm = () => {
       navigate('/tasks');
     } catch (err) {
       console.error('Error saving task:', err);
+      setError('Failed to save task: ' + (err.message || 'Unknown error'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -115,6 +158,43 @@ const TaskForm = () => {
                 rows={4}
                 variant="outlined"
               />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel>Project</InputLabel>
+                <Select
+                  name="projectId"
+                  value={formData.projectId || ''}
+                  onChange={handleChange}
+                  label="Project"
+                >
+                  <MenuItem value="">
+                    <em>Personal Task (No Project)</em>
+                  </MenuItem>
+                  {projects.length > 0 ? (
+                    projects.map((project) => (
+                      <MenuItem key={project._id} value={project._id}>
+                        {project.name}
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled sx={{ color: 'text.secondary' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <em>No projects available - </em>
+                        <Link 
+                          to="/projects" 
+                          style={{ display: 'flex', alignItems: 'center', marginLeft: '8px', textDecoration: 'none' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <AddCircleIcon fontSize="small" sx={{ mr: 0.5 }} />
+                          Create Project
+                        </Link>
+                      </Box>
+                    </MenuItem>
+                  )}
+                </Select>
+              </FormControl>
             </Grid>
 
             <Grid item xs={12} md={6}>

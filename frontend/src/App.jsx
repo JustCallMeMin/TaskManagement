@@ -9,6 +9,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import OAuthCallback from './features/auth/components/OAuthCallback';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { ProjectsPage, ProjectDetailPage } from './features/projects';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -75,6 +76,11 @@ const App = () => {
         >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/tasks/*" element={<TaskPage />} />
+          
+          {/* Project routes */}
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+          
           {/* Add other protected routes here */}
         </Route>
 

@@ -5,6 +5,7 @@ const taskRoutes = require("./task.routes");
 const groupRoutes = require("./group.routes");
 const twoFactorRoutes = require("./two_factor.routes");
 const dashboardRoutes = require("./dashboard.routes");
+const projectRoutes = require("./project.routes");
 
 const router = Router();
 
@@ -19,6 +20,9 @@ router.use("/tasks", taskRoutes);
 
 // 🔹 Group routes
 router.use("/groups", groupRoutes);
+
+// 🔹 Project routes
+router.use("/projects", projectRoutes);
 
 // 🔹 Two factor routes
 router.use("/two-factor", twoFactorRoutes);

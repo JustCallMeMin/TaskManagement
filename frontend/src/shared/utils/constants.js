@@ -14,48 +14,17 @@ const API_URLS = {
 
 // API Endpoints
 const API_ENDPOINTS = {
-  AUTH: {
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    LOGOUT: '/auth/logout',
-    REFRESH_TOKEN: '/auth/refresh-token',
-    VERIFY_EMAIL: '/auth/verify-email',
-    FORGOT_PASSWORD: '/auth/forgot-password',
-    RESET_PASSWORD: '/auth/reset-password',
-    GOOGLE: '/auth/google',
-    GITHUB: '/auth/github'
-  },
-  USER: {
-    PROFILE: '/users/profile',
-    UPDATE_PROFILE: '/users/profile',
-    CHANGE_PASSWORD: '/users/change-password',
-    ALL: '/users',
-    BY_ID: (id) => `/users/${id}`,
-  },
-  TASK: {
-    ALL: '/tasks',
-    BY_ID: (id) => `/tasks/${id}`,
-    BY_STATUS: (status) => `/tasks/status/${status}`,
-    STATUS: '/tasks/status',
-  },
-  PROJECT: {
-    ALL: '/projects',
-    BY_ID: (id) => `/projects/${id}`,
-  },
-  DASHBOARD_STATS: '/dashboard/stats',
-  DASHBOARD: {
-    TASKS: '/dashboard/tasks',
-    PROJECTS: '/dashboard/projects'
-  }
+  AUTH: '/auth',
+  USER: '/users',
+  PROJECT: '/projects',
+  TASK: '/tasks'
 };
 
 // Local Storage Keys
 const LOCAL_STORAGE_KEYS = {
   TOKEN: 'token',
-  USER: 'user',
   REFRESH_TOKEN: 'refreshToken',
-  THEME: 'theme',
-  LANGUAGE: 'language'
+  USER: 'user'
 };
 
 // Route Paths

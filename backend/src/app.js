@@ -79,10 +79,14 @@ app.use(
 const authRoutes = require("./routes/auth.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const taskRoutes = require("./routes/task.routes");
+const projectRoutes = require("./routes/project.routes");
+const userRoutes = require("./routes/user.routes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/tasks", taskRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/users", userRoutes);
 
 // Error handler
 app.use(errorHandler);

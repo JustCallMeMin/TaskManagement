@@ -43,22 +43,27 @@ export const useTaskService = () => {
     }
   }, []);
 
-  const createTask = useCallback(async (taskData) => {
-    setLoading(true);
-    setError(null);
+  const createTask = async (taskData) => {
     try {
-      const data = await taskService.createTask(taskData);
-      toast.success('Task created successfully');
-      return data;
-    } catch (err) {
-      const errorMsg = err.response?.data?.error || 'Failed to create task';
-      setError(errorMsg);
-      toast.error(errorMsg);
-      throw err;
+      setLoading(true);
+      
+      if (taskData.projectId) {
+        // Create project task
+        const newTask = await taskService.createProjectTask(taskData);
+        return newTask;
+      } else {
+        // Create personal task
+        const newTask = await taskService.createPersonalTask(taskData);
+        return newTask;
+      }
+    } catch (error) {
+      setError(error.message);
+      console.error("Error creating task:", error);
+      throw error;
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   const updateTask = useCallback(async (id, taskData) => {
     setLoading(true);
@@ -127,6 +132,20 @@ export const useTaskService = () => {
     }
   }, []);
 
+  const getTasksByProject = async (projectId) => {
+    try {
+      setLoading(true);
+      const tasks = await taskService.getTasksByProject(projectId);
+      return tasks;
+    } catch (error) {
+      setError(error.message);
+      console.error("Error fetching tasks by project:", error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     error,
@@ -136,7 +155,8 @@ export const useTaskService = () => {
     updateTask,
     deleteTask,
     updateTaskStatus,
-    assignTask
+    assignTask,
+    getTasksByProject
   };
 };
 
