@@ -50,7 +50,13 @@ const TaskDetail = () => {
     if (window.confirm('Are you sure you want to delete this task?')) {
       try {
         await deleteTask(id);
-        navigate('/tasks');
+        navigate('/tasks', { 
+          state: { 
+            taskDeleted: true,
+            taskId: id,
+            timestamp: new Date().getTime() 
+          } 
+        });
       } catch (err) {
         console.error('Error deleting task:', err);
       }

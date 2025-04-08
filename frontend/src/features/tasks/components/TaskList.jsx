@@ -17,16 +17,66 @@ import {
   VisibilityOutlined as ViewIcon,
   Add as AddIcon
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTaskService } from '../hooks/useTaskService';
 import { TASK_PRIORITY, TASK_STATUS } from '../constants';
 
 const TaskList = ({ tasks: propTasks, onTaskUpdated, projectId, showFilters = true }) => {
   const navigate = useNavigate();
-  const { getTasks, deleteTask, loading: serviceLoading, error: serviceError } = useTaskService();
+  const location = useLocation();
+  const { getTasks, getTasksByProject, deleteTask, loading: serviceLoading, error: serviceError } = useTaskService();
   const [tasks, setTasks] = React.useState(propTasks || []);
   const [loading, setLoading] = React.useState(!propTasks);
   const [error, setError] = React.useState(null);
+
+  // Define fetch functions at component level so they can be reused
+  const fetchTasks = async () => {
+    setLoading(true);
+    try {
+      console.log('Fetching all user tasks (no project context)');
+      const data = await getTasks();
+      console.log(`Fetched ${data?.length || 0} tasks`);
+      setTasks(data || []);
+      setError(null);
+    } catch (err) {
+      // Handle 404 error as an empty list, not an error
+      if (err.response && err.response.status === 404) {
+        console.log('No tasks found (404), showing empty state');
+        setTasks([]);
+        setError(null);
+      } else {
+        console.error('Error fetching tasks:', err);
+        setTasks([]);
+        setError('Failed to load tasks');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTasksForProject = async () => {
+    setLoading(true);
+    try {
+      console.log(`Fetching tasks for specific project: ${projectId}`);
+      const data = await getTasksByProject(projectId);
+      console.log(`Fetched ${data?.length || 0} tasks for project`);
+      setTasks(data || []);
+      setError(null);
+    } catch (err) {
+      // Handle 404 error as an empty list, not an error
+      if (err.response && err.response.status === 404) {
+        console.log('No tasks found for project (404), showing empty state');
+        setTasks([]);
+        setError(null);
+      } else {
+        console.error(`Error fetching tasks for project ${projectId}:`, err);
+        setTasks([]);
+        setError('Failed to load project tasks');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     // If tasks are provided via props, use those
@@ -36,30 +86,13 @@ const TaskList = ({ tasks: propTasks, onTaskUpdated, projectId, showFilters = tr
       return;
     }
     
-    const fetchTasks = async () => {
-      setLoading(true);
-      try {
-        const data = await getTasks();
-        setTasks(data || []);
-        setError(null);
-      } catch (err) {
-        // Handle 404 error as an empty list, not an error
-        if (err.response && err.response.status === 404) {
-          console.log('No tasks found (404), showing empty state');
-          setTasks([]);
-          setError(null);
-        } else {
-          console.error('Error fetching tasks:', err);
-          setTasks([]);
-          setError('Failed to load tasks');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchTasks();
-  }, [getTasks, propTasks]);
+    // Fetch appropriate tasks based on context
+    if (projectId) {
+      fetchTasksForProject();
+    } else {
+      fetchTasks();
+    }
+  }, [getTasks, propTasks, projectId, getTasksByProject]);
 
   // Update local tasks when prop tasks change
   useEffect(() => {
@@ -68,11 +101,33 @@ const TaskList = ({ tasks: propTasks, onTaskUpdated, projectId, showFilters = tr
     }
   }, [propTasks]);
 
+  useEffect(() => {
+    if (location.state?.taskDeleted) {
+      console.log('Task was deleted in another view, refreshing list');
+      if (projectId) {
+        fetchTasksForProject();
+      } else {
+        fetchTasks();
+      }
+    }
+  }, [location.state]);
+
   const handleDelete = async (id) => {
     try {
       await deleteTask(id);
       // Filter out the deleted task, considering both id and _id properties
-      setTasks(tasks.filter(task => (task._id !== id && task.id !== id)));
+      const updatedTasks = tasks.filter(task => (task._id !== id && task.id !== id));
+      setTasks(updatedTasks);
+      
+      // Notify parent component that a task has been deleted
+      if (onTaskUpdated) {
+        onTaskUpdated({ type: 'DELETE', taskId: id });
+      }
+      
+      // If we're in a project context, refresh the project's tasks
+      if (projectId) {
+        fetchTasksForProject();
+      }
     } catch (err) {
       console.error('Error deleting task:', err);
     }

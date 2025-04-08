@@ -55,7 +55,24 @@ class TaskRepository {
     }
     
     static async findByProjectId(projectId) {
-        return Task.find({ projectId }).sort({ createdAt: -1 });
+        const mongoose = require('mongoose');
+        let query = {};
+        
+        try {
+            // Nếu projectId là string hợp lệ, chuyển thành ObjectId
+            if (mongoose.Types.ObjectId.isValid(projectId)) {
+                query.projectId = new mongoose.Types.ObjectId(projectId);
+            } else {
+                // Nếu không phải ID hợp lệ, giữ nguyên để đảm bảo không match với bất kỳ task nào
+                query.projectId = projectId;
+            }
+            
+            console.log(`Querying tasks with projectId: ${projectId}, converted to: ${JSON.stringify(query)}`);
+            return Task.find(query).sort({ createdAt: -1 });
+        } catch (error) {
+            console.error(`Error finding tasks by projectId ${projectId}:`, error);
+            return [];
+        }
     }
 }
 

@@ -4,6 +4,7 @@ const ProjectService = require("./project.service");
 const UserRepository = require("../repositories/user.repository");
 const { TASK_STATUS, PROJECT_STATUS } = require("../../utils/enums");
 const TaskDTO = require("../dto/task.dto");
+const mongoose = require("mongoose");
 
 /**
  * TaskService - Quản lý nghiệp vụ công việc
@@ -180,25 +181,105 @@ class TaskService {
 				return [];
 			}
 			
-			// Check if user has access to this project
-			const isOwner = String(project.owner) === String(userId);
-			const isMember = project.members && project.members.some(
-				member => String(member) === String(userId) || 
-				        (member.userId && String(member.userId) === String(userId))
-			);
+			// Log the project structure to debug
+			console.log(`🔍 Project data:`, {
+				id: project._id,
+				owner: project.owner,
+				ownerId: project.ownerId,
+				members: project.members,
+				isPersonal: project.isPersonal
+			});
 			
-			// If neither owner nor member, and project is not personal, return empty array
-			if (!isOwner && !isMember && !project.isPersonal) {
+			// Check if user has access to this project - improved with more checks
+			let isOwner = false;
+			
+			// Check owner - could be direct ID or nested object
+			if (project.ownerId) {
+				const ownerIdString = typeof project.ownerId === 'object' ? 
+					(project.ownerId._id ? String(project.ownerId._id) : null) : 
+					String(project.ownerId);
+				
+				isOwner = ownerIdString === String(userId);
+				console.log(`🔍 Owner check: project.ownerId=${ownerIdString}, userId=${userId}, isOwner=${isOwner}`);
+			}
+			
+			// Improved member check with detailed logging
+			let isMember = false;
+			
+			// If we have members array, check all possible structures
+			if (project.members && Array.isArray(project.members)) {
+				console.log(`🔍 Checking if user ${userId} is a member of project ${projectId}`);
+				console.log(`🔍 Project has ${project.members.length} members`);
+				
+				for (const member of project.members) {
+					console.log(`🔍 Checking member:`, JSON.stringify(member));
+					
+					// Direct member ID check
+					if (typeof member === 'string' || member instanceof mongoose.Types.ObjectId) {
+						if (String(member) === String(userId)) {
+							isMember = true;
+							console.log(`🔍 Found user as direct member`);
+							break;
+						}
+					} 
+					// ProjectUser object with userId field
+					else if (member && typeof member === 'object') {
+						// Check if userId is a direct match
+						if (member.userId && (
+							   String(member.userId) === String(userId) ||
+							   (member.userId._id && String(member.userId._id) === String(userId))
+						   )) {
+							isMember = true;
+							console.log(`🔍 Found user in member.userId field`);
+							break;
+						}
+						
+						// Check user ID in nested objects (handles different structures)
+						const checkNestedUserId = (obj) => {
+							if (!obj || typeof obj !== 'object') return false;
+							
+							// Direct ID match
+							if (obj._id && String(obj._id) === String(userId)) return true;
+							if (obj.id && String(obj.id) === String(userId)) return true;
+							
+							// Check in userId field if it exists
+							if (obj.userId) {
+								if (typeof obj.userId === 'string' || obj.userId instanceof mongoose.Types.ObjectId) {
+									return String(obj.userId) === String(userId);
+								} else if (typeof obj.userId === 'object') {
+									return (obj.userId._id && String(obj.userId._id) === String(userId)) ||
+										   (obj.userId.id && String(obj.userId.id) === String(userId));
+								}
+							}
+							
+							return false;
+						};
+						
+						if (checkNestedUserId(member)) {
+							isMember = true;
+							console.log(`🔍 Found user in nested member object`);
+							break;
+						}
+					}
+				}
+			}
+			
+			console.log(`🔍 Access check results: isOwner = ${isOwner}, isMember = ${isMember}`);
+			
+			// Grant access if user is either owner or member
+			if (isOwner || isMember || project.isPersonal) {
+				console.log(`🔍 User ${userId} has access to project ${projectId}`);
+				
+				// Find all tasks for this project
+				const tasks = await TaskRepository.findByProjectId(projectId);
+				console.log(`🔍 Found ${tasks.length} tasks for project ${projectId}`);
+				
+				// Map each task to a DTO to ensure consistent formatting
+				return tasks.map(task => new TaskDTO(task)) || [];
+			} else {
 				console.warn(`User ${userId} does not have access to project ${projectId}`);
 				return [];
 			}
-
-			// Find all tasks for this project
-			const tasks = await TaskRepository.findByProjectId(projectId);
-			console.log(`🔍 Found ${tasks.length} tasks for project ${projectId}`);
-			
-			// Map each task to a DTO to ensure consistent formatting
-			return tasks.map(task => new TaskDTO(task)) || [];
 		} catch (error) {
 			console.error(`Error fetching tasks for project ${projectId}:`, error);
 			return [];

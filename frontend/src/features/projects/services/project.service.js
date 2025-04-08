@@ -225,10 +225,14 @@ class ProjectService {
         throw new Error('Invalid project data received');
       }
       
+      // Log raw project data to inspect structure
+      console.log('Raw project data:', projectData);
+      console.log('Project ID from URL:', projectId);
+      
       // Normalize the project data to ensure consistent structure
       const normalizedProject = {
-        _id: projectData.projectId || projectData._id,
-        projectId: projectData.projectId || projectData._id,
+        _id: projectId, // Use the projectId from the URL parameter as primary source
+        projectId: projectId, // Same here
         name: projectData.name || 'Untitled Project',
         description: projectData.description || '',
         status: projectData.status || 'ACTIVE',
@@ -240,7 +244,7 @@ class ProjectService {
         taskStats: projectData.taskStats || { total: 0, completed: 0 }
       };
       
-      console.log('Normalized project data:', normalizedProject);
+      console.log('Normalized project data with fixed IDs:', normalizedProject);
       return normalizedProject;
     } catch (error) {
       console.error('Error getting project details:', error);

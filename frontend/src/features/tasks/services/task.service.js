@@ -88,9 +88,25 @@ class TaskService {
       }
       
       console.log("Creating task with data:", data);
+      console.log("Using endpoint:", endpoint);
       
       const response = await api.post(endpoint, data);
-      return response;
+      console.log("Task creation response:", response);
+      
+      // Extract task data from response
+      let createdTask;
+      if (response.data && response.data.data) {
+        // New format: { success, data, message }
+        createdTask = response.data.data;
+      } else if (response.data) {
+        // Old format or direct object
+        createdTask = response.data;
+      } else {
+        throw new Error("Invalid response format from server");
+      }
+      
+      console.log("Created task:", createdTask);
+      return createdTask;
     } catch (error) {
       console.error('Error creating task:', error);
       console.error('Error response:', error.response?.data);
@@ -163,8 +179,26 @@ class TaskService {
   // Get tasks by project ID
   async getTasksByProject(projectId) {
     try {
+      console.log(`Getting tasks for project ID: ${projectId}`);
       const response = await api.get(`/tasks?projectId=${projectId}`);
-      return response.data || [];
+      console.log('Project tasks API response:', response);
+      
+      // Extract tasks from response properly
+      let tasks = [];
+      
+      if (response.data && response.data.data) {
+        // New format: { success, data, message }
+        tasks = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        // Old format: direct array
+        tasks = response.data;
+      } else if (typeof response.data === 'object') {
+        // Fallback if response.data is an object but not in expected format
+        tasks = response.data;
+      }
+      
+      console.log(`Found ${tasks.length} tasks for project ${projectId}:`, tasks);
+      return tasks;
     } catch (error) {
       console.error('Error getting tasks by project:', error);
       return [];
