@@ -92,7 +92,8 @@ const TaskList = ({ tasks: propTasks, onTaskUpdated, projectId, showFilters = tr
     } else {
       fetchTasks();
     }
-  }, [getTasks, propTasks, projectId, getTasksByProject]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propTasks, projectId]);
 
   // Update local tasks when prop tasks change
   useEffect(() => {

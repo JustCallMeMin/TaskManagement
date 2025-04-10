@@ -27,7 +27,7 @@ class NotificationService {
             avatar: invitation.invitedBy?.avatar || ''
           },
           referenceId: invitation._id,
-          projectId: invitation.projectId?._id
+          projectId: invitation.projectId?._id1
         };
       });
       

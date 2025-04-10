@@ -16,7 +16,7 @@ const { PROJECT_ROLE } = require("../../utils/enums");
  * 3. User chỉ có thể xem và tạo task trong Project mà họ là thành viên
  */
 class ProjectService {
-	// 1️⃣ Tạo Personal Project
+	// Tạo Personal Project
 	static async createPersonalProject(userId) {
 		// Kiểm tra xem user đã có project cá nhân chưa
 		const existingProject = await ProjectRepository.findByOwner(userId, true);
@@ -41,14 +41,14 @@ class ProjectService {
 		return newProject;
 	}
 
-	// 1️⃣.1️⃣ Hàm tiện ích - Lấy Personal Project (không tự tạo)
+	// Lấy Personal Project (không tự tạo)
 	static async getOrCreatePersonalProject(userId) {
 		// Only find the personal project, don't create if it doesn't exist
 		const existingProject = await ProjectRepository.findByOwner(userId, true);
 		return existingProject; // Will return null if not found
 	}
 
-	// 2️⃣ Tạo Organization Project
+	// Tạo Organization Project
 	/**
 	 * Tạo dự án cho tổ chức/nhóm (chỉ Manager/Admin)
 	 * Tuân theo mô hình giống Jira/Trello, chỉ người có quyền mới tạo được project cho nhóm
@@ -74,14 +74,14 @@ class ProjectService {
 		return project;
 	}
 
-	// 3️⃣ Cập nhật thông tin dự án
+	// Cập nhật thông tin dự án
 	static async updateProject(projectId, projectData) {
 		const project = await ProjectRepository.update(projectId, projectData);
 		if (!project) throw new Error("Dự án không tồn tại.");
 		return new ProjectDTO(project);
 	}
 
-	// 4️⃣ Xóa nhiều dự án
+	// Xóa nhiều dự án
 	static async deleteProjects(projectIds) {
 		const tasks = await Task.find({
 			projectId: { $in: projectIds },
@@ -98,7 +98,7 @@ class ProjectService {
 		return { message: `Đã xóa ${projectIds.length} dự án khỏi hệ thống.` };
 	}
 
-	// 5️⃣ Gửi lời mời thành viên vào dự án
+	// Gửi lời mời thành viên vào dự án
 	static async addMembers(projectId, memberIds, role = PROJECT_ROLE.MEMBER, invitedBy) {
 		const project = await ProjectRepository.findById(projectId);
 		if (!project) throw new Error("Dự án không tồn tại.");
@@ -137,10 +137,10 @@ class ProjectService {
 		);
 		
 		// Log detailed information for debugging
-		console.log(`🔑 Project members count: ${existingMemberIds.length}`);
-		console.log(`📌 PENDING invitations count: ${pendingInvitations.length}`);
-		console.log(`📌 ACCEPTED invitations count: ${acceptedInvitations.length}`);
-		console.log(`📌 Other invitations count: ${otherInvitations.length}`);
+		console.log(`Project members count: ${existingMemberIds.length}`);
+		console.log(`PENDING invitations count: ${pendingInvitations.length}`);
+		console.log(`ACCEPTED invitations count: ${acceptedInvitations.length}`);
+		console.log(`Other invitations count: ${otherInvitations.length}`);
 		
 		// 1. Handle members who are already in the project
 		const membersToSkip = memberIds.filter(id => existingMemberIds.includes(id.toString()));
@@ -175,9 +175,9 @@ class ProjectService {
 				try {
 					const updated = await invitation.save();
 					updatedInvitations.push(updated);
-					console.log(`✅ Reused invitation for user ${invitation.userId}, changed status from ${invitation.status} to PENDING`);
+					console.log(`Reused invitation for user ${invitation.userId}, changed status from ${invitation.status} to PENDING`);
 				} catch (err) {
-					console.error(`❌ Error updating existing invitation:`, err);
+					console.error(`Error updating existing invitation:`, err);
 				}
 			}
 		}
@@ -266,113 +266,100 @@ class ProjectService {
 		};
 	}
 
-	// 5️⃣.1️⃣ Chấp nhận lời mời dự án
+	// Chấp nhận lời mời dự án
 	static async acceptInvitation(invitationId, userId) {
-		console.log(`📡 [CRITICAL LOG] Bắt đầu xử lý chấp nhận lời mời: ${invitationId} cho user: ${userId}`);
+		console.log(`[CRITICAL LOG] Bắt đầu xử lý chấp nhận lời mời: ${invitationId} cho user: ${userId}`);
 		try {
-			// Log for debugging - log chi tiết hơn để debug
-			console.log(`📝 [CRITICAL] Chấp nhận lời mời: ${invitationId} cho user: ${userId}`);
-			console.log(`📝 InvitationID type: ${typeof invitationId}`);
-			console.log(`📝 UserID type: ${typeof userId}`);
+			console.log(`[CRITICAL] Chấp nhận lời mời: ${invitationId} cho user: ${userId}`);
+			console.log(`InvitationID type: ${typeof invitationId}`);
+			console.log(`UserID type: ${typeof userId}`);
 			
-			// Đảm bảo invitationId là string hợp lệ
 			if (!invitationId || typeof invitationId !== 'string') {
-				console.error(`❌ Invalid invitation ID format: ${invitationId}`);
+				console.error(`Invalid invitation ID format: ${invitationId}`);
 				throw new Error("ID lời mời không hợp lệ.");
 			}
 			
-			// Đảm bảo MongoDB ObjectId hợp lệ
 			const { isValidObjectId } = require('mongoose');
 			if (!isValidObjectId(invitationId)) {
-				console.error(`❌ Not a valid MongoDB ObjectID: ${invitationId}`);
+				console.error(`Not a valid MongoDB ObjectID: ${invitationId}`);
 				throw new Error("ID lời mời không đúng định dạng MongoDB.");
 			}
 			
-			// Make sure we get the latest from DB - bypassing cache
 			const invitation = await ProjectInvitation.findById(invitationId).exec();
 			if (!invitation) {
-				console.error(`❌ Invitation not found with ID: ${invitationId}`);
+				console.error(`Invitation not found with ID: ${invitationId}`);
 				throw new Error("Lời mời không tồn tại.");
 			}
 			
-			console.log(`📝 Found invitation status: ${invitation.status} for project: ${invitation.projectId}`);
-			console.log(`📝 Full invitation object:`, JSON.stringify(invitation, null, 2));
+			console.log(`Found invitation status: ${invitation.status} for project: ${invitation.projectId}`);
+			console.log(`Full invitation object:`, JSON.stringify(invitation, null, 2));
 			
-			// Verify this invitation belongs to this user
 			if (invitation.userId.toString() !== userId.toString()) {
-				console.error(`❌ User ${userId} attempted to accept invitation for user ${invitation.userId}`);
+				console.error(`User ${userId} attempted to accept invitation for user ${invitation.userId}`);
 				throw new Error("Bạn không có quyền chấp nhận lời mời này.");
 			}
 			
 			if (invitation.status !== "PENDING") {
-				console.warn(`⚠️ Invitation ${invitationId} is already ${invitation.status}`);
+				console.warn(`Invitation ${invitationId} is already ${invitation.status}`);
 				throw new Error(`Lời mời đã được ${invitation.status === "ACCEPTED" ? "chấp nhận" : "từ chối"} trước đó.`);
 			}
 		
-			// UPDATE 1: Create the project user association FIRST
-			// This ensures the user is properly added to the project
 			try {
 				const projectUser = await ProjectUser.create({
 					projectId: invitation.projectId,
 					userId: invitation.userId,
 					role: invitation.role,
 				});
-				console.log(`✅ User ${userId} added to project ${invitation.projectId} with role ${invitation.role}`);
+				console.log(`User ${userId} added to project ${invitation.projectId} with role ${invitation.role}`);
 			} catch (err) {
-				// Check if it's a duplicate error - if so, this is okay (user already in project)
-				if (err.code !== 11000) { // 11000 is MongoDB duplicate key error
-					console.error(`❌ Failed to add user to project:`, err);
+				if (err.code !== 11000) {
+					console.error(`Failed to add user to project:`, err);
 					throw new Error("Không thể thêm thành viên vào dự án. Vui lòng thử lại.");
 				} else {
-					console.log(`⚠️ User ${userId} already exists in project ${invitation.projectId} - continuing`);
+					console.log(`User ${userId} already exists in project ${invitation.projectId} - continuing`);
 				}
 			}
 		
-		// UPDATE 2: Now update the invitation status - sử dụng nhiều phương pháp để đảm bảo cập nhật thành công
-		console.log(`📡 [IMPORTANT] Đang cập nhật status lời mời ${invitationId} thành ACCEPTED`);
+		console.log(`[IMPORTANT] Đang cập nhật status lời mời ${invitationId} thành ACCEPTED`);
 		
-		// Phương pháp 1: Cập nhật trực tiếp document
 		invitation.status = "ACCEPTED";
 		invitation.updatedAt = new Date();
 		try {
 			await invitation.save();
-			console.log(`✅ Phương pháp 1 - Cập nhật document thành công`);
+			console.log(`Phương pháp 1 - Cập nhật document thành công`);
 		} catch (saveErr) {
-			console.error(`❌ Phương pháp 1 thất bại:`, saveErr);
-			// Tiếp tục với phương pháp 2
+			console.error(`Phương pháp 1 thất bại:`, saveErr);
 		}
 		
-		// Phương pháp 2: Dùng updateOne trực tiếp
 		try {
 			const updateResult = await ProjectInvitation.updateOne(
 				{ _id: invitationId },
 				{ $set: { status: "ACCEPTED", updatedAt: new Date() } }
 			);
-			console.log(`📊 Phương pháp 2 - Kết quả cập nhật:`, updateResult);
+			console.log(`Phương pháp 2 - Kết quả cập nhật:`, updateResult);
 
 			if (updateResult.matchedCount === 0) {
-				console.error(`❌ Không tìm thấy invitation để cập nhật với id ${invitationId}`);
+				console.error(`Không tìm thấy invitation để cập nhật với id ${invitationId}`);
 			}
 
 			if (updateResult.modifiedCount === 0) {
-				console.warn(`⚠️ Không có document nào được cập nhật với id ${invitationId}`);
+				console.warn(`Không có document nào được cập nhật với id ${invitationId}`);
 			}
 		} catch (updateErr) {
-			console.error(`❌ Phương pháp 2 thất bại:`, updateErr);
+			console.error(`Phương pháp 2 thất bại:`, updateErr);
 		}
 
-		// Phương pháp 3: Kiểm tra lại sau khi cập nhật
 		try {
 			const verifyInvitation = await ProjectInvitation.findById(invitationId);
 			console.log(`🔍 Phương pháp 3 - Kiểm tra sau cập nhật: status = ${verifyInvitation?.status}`);
 		} catch (verifyErr) {
-			console.error(`❌ Phương pháp 3 thất bại:`, verifyErr);
+			console.error(`Phương pháp 3 thất bại:`, verifyErr);
 		}
 		
 		// Get project details for notification
 		const project = await ProjectRepository.findById(invitation.projectId);
 		if (!project) {
-			console.error(`❌ Project not found with ID: ${invitation.projectId}`);
+			console.error(`Project not found with ID: ${invitation.projectId}`);
 			throw new Error("Dự án không tồn tại hoặc đã bị xóa.");
 		}
 		
@@ -395,10 +382,10 @@ class ProjectService {
 					action: 'added'
 				});
 				
-				console.log('🔔 WebSocket notifications sent for accepted invitation');
+				console.log('WebSocket notifications sent for accepted invitation');
 			}
 		} catch (error) {
-			console.error('⚠️ WebSocket notification error:', error);
+			console.error('WebSocket notification error:', error);
 		}
 
 		return { 
@@ -406,12 +393,12 @@ class ProjectService {
 			project: new ProjectDTO(project)
 		};
 		} catch (error) {
-			console.error(`❌ [ERROR] Lỗi khi chấp nhận lời mời:`, error);
+			console.error(`[ERROR] Lỗi khi chấp nhận lời mời:`, error);
 			throw error;
 		}
 	}
 
-	// 5️⃣.2️⃣ Từ chối lời mời dự án
+	// Từ chối lời mời dự án
 	static async rejectInvitation(invitationId, userId) {
 		const invitation = await ProjectInvitation.findById(invitationId);
 		if (!invitation) throw new Error("Lời mời không tồn tại.");
@@ -444,16 +431,16 @@ class ProjectService {
 					projectName: project.name,
 					userId: invitation.userId
 				});
-				console.log('🔔 WebSocket notification sent for rejected invitation');
+				console.log('WebSocket notification sent for rejected invitation');
 			}
 		} catch (error) {
-			console.error('⚠️ WebSocket notification error:', error);
+			console.error('WebSocket notification error:', error);
 		}
 
 		return { message: "Bạn đã từ chối lời mời tham gia dự án." };
 	}
 
-	// 5️⃣.3️⃣ Lấy danh sách lời mời của người dùng
+	//  Lấy danh sách lời mời của người dùng
 	static async getUserInvitations(userId) {
 		const invitations = await ProjectInvitation.find({
 			userId,
@@ -469,7 +456,7 @@ class ProjectService {
 		return invitations;
 	}
 
-	// 6️⃣ Xóa thành viên khỏi dự án
+	// Xóa thành viên khỏi dự án
 	static async removeMembers(projectId, memberIds) {
 		const project = await ProjectRepository.findById(projectId);
 		if (!project) throw new Error("Dự án không tồn tại.");
@@ -493,20 +480,20 @@ class ProjectService {
 		};
 	}
 
-	// 7️⃣ Lấy danh sách dự án của user
+	// Lấy danh sách dự án của user
 	static async getAllProjects(userId) {
 		const projects = await ProjectRepository.findAllByUser(userId);
 		return projects;
 	}
 
-	// 8️⃣ Lấy thông tin dự án theo ID
+	// Lấy thông tin dự án theo ID
 	static async getProjectById(projectId) {
 		const project = await ProjectRepository.findById(projectId);
 		if (!project) throw new Error("Dự án không tồn tại.");
 		return new ProjectDTO(project);
 	}
 
-	// 9️⃣ Lấy danh sách thành viên của dự án
+	// Lấy danh sách thành viên của dự án
 	static async getProjectMembers(projectId) {
 		try {
 			console.log("🔍 Getting members for project ID:", projectId);
@@ -528,10 +515,10 @@ class ProjectService {
 				role: member.role
 			}));
 			
-			console.log(`✅ Found ${formattedMembers.length} members for project ID: ${projectId}`);
+			console.log(`Found ${formattedMembers.length} members for project ID: ${projectId}`);
 			return formattedMembers;
 		} catch (error) {
-			console.error("❌ Error getting project members:", error);
+			console.error("Error getting project members:", error);
 			throw error;
 		}
 	}
